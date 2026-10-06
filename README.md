@@ -1,4 +1,4 @@
-# ViVo
+# ViVa
 
 Публичная страница бизнес-брифа с анкетой, встроенной из Яндекс Форм.
 
@@ -12,7 +12,7 @@
 
 GitHub Actions автоматически собирает и публикует сайт в GitHub Pages после отправки изменений в ветку main.
 
-Адрес сайта: https://lesiveducation.github.io/ViVo/
+Адрес сайта: https://lesiveducation.github.io/ViVa/
 
 ## Ключ GitHub
 

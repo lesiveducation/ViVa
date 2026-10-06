@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://lesiveducation.github.io/ViVo/sitemap-index.xml
+Sitemap: https://lesiveducation.github.io/ViVa/sitemap-index.xml

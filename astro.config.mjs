@@ -3,6 +3,6 @@ import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
   site: 'https://lesiveducation.github.io',
-  base: '/ViVo',
+  base: '/ViVa',
   integrations: [sitemap()],
 });
