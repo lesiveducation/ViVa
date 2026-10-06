@@ -1,20 +1,33 @@
 ---
 import '../styles/global.css';
-import '../styles/funnel.css';
-const { title = 'Бриф для развития бизнеса' } = Astro.props;
+import '../styles/character.css';
+import '../styles/atmosphere.css';
+import '../styles/blog.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+const { title = 'ViVA — авторские украшения', description = 'Авторские украшения ручной работы из натуральных материалов.' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Заполните бриф — поможем раскрыть сильные стороны бизнеса и подготовить основу для сайта и продвижения." />
-    <link rel="icon" type="image/svg+xml" href="/DL_Brief/images/dl-mark.svg" />
-    <meta name="theme-color" content="#0c1820" />
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#161917" />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body><slot /></body>
+  <body>
+    <Header />
+    <main><slot /></main>
+    <Footer />
+  </body>
 </html>

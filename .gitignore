@@ -6,3 +6,9 @@ dist/
 !.env.example
 .DS_Store
 Thumbs.db
+.codex-build/
+.codex-finalizer/
+.codex-render/
+.codex-render-v2/
+.codex-render-v3/
+deliverables/

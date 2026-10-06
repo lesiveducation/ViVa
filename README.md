@@ -1,4 +1,4 @@
-# DL_Brief
+# ViVo
 
 Публичная страница бизнес-брифа с анкетой, встроенной из Яндекс Форм.
 
@@ -12,7 +12,7 @@
 
 GitHub Actions автоматически собирает и публикует сайт в GitHub Pages после отправки изменений в ветку main.
 
-Ожидаемый адрес: https://lesiveducation.github.io/DL_Brief/
+Адрес сайта: https://lesiveducation.github.io/ViVo/
 
 ## Ключ GitHub
 

@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro'; import ProductCard from '../components/ProductCard.astro'; const base=import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const products=[
+{image:`${base}images/viva/product-1.jpg`,title:'Серьги с натуральным камнем',material:'Натуральный камень · металл',price:'2 300 ₽',tag:'в наличии'},
+{image:`${base}images/viva/product-2.jpg`,title:'Колье с подвеской',material:'Камни · цепь · авторская сборка',price:'3 900 ₽',tag:'в наличии'},
+{image:`${base}images/viva/product-3.jpg`,title:'Браслет «Дофаминовый»',material:'Цветные бусины',price:'2 600 ₽',tag:'новинка'},
+{image:`${base}images/viva/product-4.jpg`,title:'Колье с жемчугом',material:'Жемчуг · подвеска',price:'3 600 ₽'},
+{image:`${base}images/viva/product-5.jpg`,title:'Именное колье',material:'Бусины · индивидуальная надпись',price:'от 2 800 ₽',tag:'на заказ'},
+{image:`${base}images/viva/product-6.jpg`,title:'Колье с крупной подвеской',material:'Натуральные камни',price:'3 900 ₽'},];
+---
+<Layout title="Каталог — ViVA" description="Готовые авторские украшения ViVA: серьги, браслеты, колье и комплекты."><section class="page-hero"><div class="container"><div class="breadcrumbs">Главная / Каталог</div><h1>Украшения в наличии</h1><p>Готовые изделия и небольшие серии. Наличие меняется, поэтому перед заказом напишите мастеру.</p></div></section><section class="section white"><div class="container"><div class="product-grid">{products.map((product)=><ProductCard {...product}/>)}</div></div></section><section class="cta-band"><div class="container cta-inner"><h2>Не нашли нужное сочетание?</h2><a class="button" href={`${base}custom/`}>Создать на заказ</a></div></section></Layout>

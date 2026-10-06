@@ -1,0 +1,49 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const posts = (await getCollection('blog')).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const featured = posts.find((post) => post.data.featured) ?? posts[0];
+const rest = posts.filter((post) => post.id !== featured?.id);
+const formatDate = (date) => new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+---
+<Layout title="Журнал ViVA — об украшениях, стиле и уходе" description="Практичные статьи ViVA о выборе украшений, натуральных материалах, стиле, подарках и бережном уходе.">
+  <section class="page-hero blog-hero">
+    <div class="container">
+      <div class="breadcrumbs"><a href={base}>Главная</a> · Журнал</div>
+      <span class="eyebrow">Журнал ViVA</span>
+      <h1>Истории, которые<br />можно носить</h1>
+      <p>О стиле без строгих правил, характере натуральных материалов и украшениях, которые становятся личными.</p>
+    </div>
+  </section>
+
+  {featured && <section class="section blog-feature-section">
+    <div class="container">
+      <a class="blog-feature" href={`${base}blog/${featured.id}/`}>
+        <div class="blog-feature-image"><img src={featured.data.cover} alt="" /></div>
+        <div class="blog-feature-copy">
+          <div class="post-meta"><span>{featured.data.category}</span><span>{formatDate(featured.data.pubDate)}</span><span>{featured.data.readTime}</span></div>
+          <h2>{featured.data.title}</h2>
+          <p>{featured.data.description}</p>
+          <span class="text-link">Читать статью →</span>
+        </div>
+      </a>
+    </div>
+  </section>}
+
+  <section class="section white blog-list-section">
+    <div class="container">
+      <div class="section-head"><h2>Все статьи</h2><p>Новые материалы будут появляться здесь и в каналах ViVA.</p></div>
+      <div class="blog-grid">
+        {rest.map((post) => <article class="blog-card">
+          <a class="blog-card-image" href={`${base}blog/${post.id}/`}><img src={post.data.cover} alt="" /></a>
+          <div class="post-meta"><span>{post.data.category}</span><span>{formatDate(post.data.pubDate)}</span></div>
+          <h3><a href={`${base}blog/${post.id}/`}>{post.data.title}</a></h3>
+          <p>{post.data.description}</p>
+          <a class="text-link" href={`${base}blog/${post.id}/`}>Читать · {post.data.readTime}</a>
+        </article>)}
+      </div>
+    </div>
+  </section>
+</Layout>

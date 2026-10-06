@@ -1,0 +1,14 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const current = Astro.url.pathname;
+const links = [
+  ['','Главная'],['catalog/','Каталог'],['custom/','На заказ'],['events/','Сертификаты'],['about/','О ViVA'],['blog/','Журнал'],['contacts/','Контакты']
+];
+---
+<header class="site-header">
+  <div class="container nav-shell">
+    <a class="brand" href={base}><span>ViVA</span><small>авторские украшения</small></a>
+    <nav>{links.map(([href,label]) => <a class:list={[current === `${base}${href}` && 'active']} href={`${base}${href}`}>{label}</a>)}</nav>
+    <a class="header-order" href="https://t.me/vafanasievav" target="_blank" rel="noopener">Подобрать украшение</a>
+  </div>
+</header>
