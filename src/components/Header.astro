@@ -8,7 +8,17 @@ const links = [
 <header class="site-header">
   <div class="container nav-shell">
     <a class="brand" href={base}><span>ViVA</span><small>авторские украшения</small></a>
-    <nav>{links.map(([href,label]) => <a class:list={[current === `${base}${href}` && 'active']} href={`${base}${href}`}>{label}</a>)}</nav>
+    <nav id="site-nav" aria-label="Основная навигация">{links.map(([href,label]) => <a class:list={[current === `${base}${href}` && 'active']} href={`${base}${href}`}>{label}</a>)}</nav>
     <a class="header-order" href="https://t.me/vafanasievav" target="_blank" rel="noopener">Подобрать украшение</a>
+    <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false"><span>Меню</span><i aria-hidden="true"></i></button>
   </div>
 </header>
+<script>
+  const toggle = document.querySelector('.nav-toggle');
+  const nav = document.querySelector('#site-nav');
+  toggle?.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!open));
+    nav?.classList.toggle('open', !open);
+  });
+</script>
