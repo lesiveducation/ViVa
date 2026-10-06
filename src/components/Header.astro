@@ -4,21 +4,30 @@ const current = Astro.url.pathname;
 const links = [
   ['','Главная'],['catalog/','Каталог'],['custom/','На заказ'],['events/','Сертификаты'],['about/','О ViVA'],['blog/','Журнал'],['contacts/','Контакты']
 ];
+const isActive = (href) => href === '' ? current === base : current.startsWith(`${base}${href}`);
 ---
 <header class="site-header">
   <div class="container nav-shell">
     <a class="brand" href={base}><span>ViVA</span><small>авторские украшения</small></a>
-    <nav id="site-nav" aria-label="Основная навигация">{links.map(([href,label]) => <a class:list={[current === `${base}${href}` && 'active']} href={`${base}${href}`}>{label}</a>)}</nav>
+    <nav id="site-nav" aria-label="Основная навигация">{links.map(([href,label]) => <a class:list={[isActive(href) && 'active']} href={`${base}${href}`}>{label}</a>)}</nav>
     <a class="header-order" href="https://t.me/vafanasievav" target="_blank" rel="noopener">Подобрать украшение</a>
-    <button class="nav-toggle" type="button" aria-controls="site-nav" aria-expanded="false"><span>Меню</span><i aria-hidden="true"></i></button>
+    <button class="nav-toggle" type="button" aria-label="Открыть меню" aria-controls="site-nav" aria-expanded="false"><span>Меню</span><i aria-hidden="true"></i></button>
   </div>
 </header>
 <script>
   const toggle = document.querySelector('.nav-toggle');
   const nav = document.querySelector('#site-nav');
+  const closeMenu = () => {
+    toggle?.setAttribute('aria-expanded', 'false');
+    toggle?.setAttribute('aria-label', 'Открыть меню');
+    nav?.classList.remove('open');
+  };
   toggle?.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') === 'true';
     toggle.setAttribute('aria-expanded', String(!open));
+    toggle.setAttribute('aria-label', open ? 'Открыть меню' : 'Закрыть меню');
     nav?.classList.toggle('open', !open);
   });
+  nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeMenu(); });
 </script>

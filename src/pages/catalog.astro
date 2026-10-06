@@ -1,11 +1,25 @@
 ---
-import Layout from '../layouts/Layout.astro'; import ProductCard from '../components/ProductCard.astro'; const base=import.meta.env.BASE_URL.replace(/\/?$/, '/');
-const products=[
-{image:`${base}images/viva/product-1.jpg`,title:'Серьги с натуральным камнем',material:'Натуральный камень · металл',price:'2 300 ₽',tag:'в наличии'},
-{image:`${base}images/viva/product-2.jpg`,title:'Колье с подвеской',material:'Камни · цепь · авторская сборка',price:'3 900 ₽',tag:'в наличии'},
-{image:`${base}images/viva/product-3.jpg`,title:'Браслет «Дофаминовый»',material:'Цветные бусины',price:'2 600 ₽',tag:'новинка'},
-{image:`${base}images/viva/product-4.jpg`,title:'Колье с жемчугом',material:'Жемчуг · подвеска',price:'3 600 ₽'},
-{image:`${base}images/viva/product-5.jpg`,title:'Именное колье',material:'Бусины · индивидуальная надпись',price:'от 2 800 ₽',tag:'на заказ'},
-{image:`${base}images/viva/product-6.jpg`,title:'Колье с крупной подвеской',material:'Натуральные камни',price:'3 900 ₽'},];
+import Layout from '../layouts/Layout.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { products as productData } from '../data/products.js';
+const base=import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const products = productData.map((product) => ({ ...product, image: `${base}${product.image}` }));
 ---
-<Layout title="Каталог — ViVA" description="Готовые авторские украшения ViVA: серьги, браслеты, колье и комплекты."><section class="page-hero"><div class="container"><div class="breadcrumbs">Главная / Каталог</div><h1>Украшения в наличии</h1><p>Готовые изделия и небольшие серии. Наличие меняется, поэтому перед заказом напишите мастеру.</p></div></section><section class="section white"><div class="container"><div class="product-grid">{products.map((product)=><ProductCard {...product}/>)}</div></div></section><section class="cta-band"><div class="container cta-inner"><h2>Не нашли нужное сочетание?</h2><a class="button" href={`${base}custom/`}>Создать на заказ</a></div></section></Layout>
+<Layout title="Каталог — ViVA" description="Готовые авторские украшения ViVA: серьги, браслеты, колье и комплекты."><section class="page-hero"><div class="container"><div class="breadcrumbs">Главная / Каталог</div><h1>Украшения в наличии</h1><p>Готовые изделия и небольшие серии. Наличие меняется, поэтому перед заказом напишите мастеру.</p></div></section><section class="section white"><div class="container"><div class="catalog-filters" aria-label="Фильтр каталога"><button type="button" data-filter="all">Все</button><button type="button" data-filter="earrings">Серьги</button><button type="button" data-filter="necklaces">Колье</button><button type="button" data-filter="bracelets">Браслеты</button></div><div class="product-grid">{products.map((product)=><ProductCard {...product}/>)}</div></div></section><section class="cta-band"><div class="container cta-inner"><h2>Не нашли нужное сочетание?</h2><a class="button" href={`${base}custom/`}>Создать на заказ</a></div></section></Layout>
+<script>
+  const cards = [...document.querySelectorAll('[data-product-type]')];
+  const buttons = [...document.querySelectorAll('[data-filter]')];
+  const applyFilter = (type) => {
+    const selected = ['earrings', 'necklaces', 'bracelets'].includes(type) ? type : 'all';
+    cards.forEach((card) => { card.hidden = selected !== 'all' && card.dataset.productType !== selected; });
+    buttons.forEach((button) => button.classList.toggle('active', button.dataset.filter === selected));
+  };
+  applyFilter(new URLSearchParams(window.location.search).get('type') || 'all');
+  buttons.forEach((button) => button.addEventListener('click', () => {
+    const type = button.dataset.filter || 'all';
+    const url = new URL(window.location.href);
+    type === 'all' ? url.searchParams.delete('type') : url.searchParams.set('type', type);
+    history.replaceState({}, '', url);
+    applyFilter(type);
+  }));
+</script>

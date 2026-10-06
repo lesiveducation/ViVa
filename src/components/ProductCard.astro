@@ -1,7 +1,7 @@
 ---
-const { image, title, material, price, tag } = Astro.props;
+const { image, title, material, price, tag, type } = Astro.props;
 ---
-<article class="product-card">
+<article class="product-card" data-product-type={type}>
   <div class="product-image"><img src={image} alt={title} loading="lazy" />{tag && <span>{tag}</span>}</div>
   <div class="product-copy"><div><h3>{title}</h3><p>{material}</p></div><strong>{price}</strong></div>
 </article>

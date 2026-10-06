@@ -5,8 +5,11 @@ import '../styles/atmosphere.css';
 import '../styles/blog.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-const { title = 'ViVA — авторские украшения', description = 'Авторские украшения ручной работы из натуральных материалов.' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const { title = 'ViVA — авторские украшения', description = 'Авторские украшения ручной работы из натуральных материалов.', image = `${base}images/viva/hero.jpg`, type = 'website' } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const socialImage = new URL(image, Astro.site);
+const organization = { '@context': 'https://schema.org', '@type': 'Organization', name: 'ViVA', url: new URL(base, Astro.site).href, sameAs: ['https://t.me/viva_del_arte', 'https://max.ru/channel_viva'] };
 ---
 <!doctype html>
 <html lang="ru">
@@ -16,16 +19,23 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="description" content={description} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={type} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={socialImage} />
     <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
     <meta name="theme-color" content="#161917" />
     <title>{title}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script type="application/ld+json" set:html={JSON.stringify(organization)} />
   </head>
-  <body>
+  <body style={`--atmosphere-image:url('${base}images/viva/boutique-runway-bg.png')`}>
     <Header />
     <main><slot /></main>
     <Footer />
