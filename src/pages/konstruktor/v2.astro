@@ -1,0 +1,498 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { TYPES, TEMPLATES, BEADS, FILLER } from '../../data/konstruktor-v2.js';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const img = `${base}images/konstruktor/`;
+const master = 'https://t.me/vafanasievav';
+const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+const t0 = TYPES[0], z0 = t0.sizes[0];
+const data = JSON.stringify({ TYPES, TEMPLATES, BEADS, FILLER });
+---
+<Layout title="Конструктор браслетов — ViVA" description="Соберите браслет ViVA из натуральных камней: перетаскивайте бусины на браслет и сразу видите результат и цену." noindex>
+  <section class="v2">
+    <div class="container v2-wrap">
+      <div class="v2-head">
+        <div class="breadcrumbs">Главная / Конструктор / Новая версия</div>
+        <h1>Соберите браслет</h1>
+        <p>Перетащите камень из ленты на браслет — он встанет на ближайшее место. Бусины на браслете можно менять местами, а унесённая с браслета бусина снова станет белой.</p>
+      </div>
+
+      <div class="v2-pick">
+        <div class="v2-field">
+          <small>тип браслета</small>
+          <div class="v2-pills" id="v2Types" role="radiogroup" aria-label="Тип браслета">
+            {TYPES.map((t) => (
+              <button type="button" class="v2-pill" data-type={t.id} aria-pressed={String(t.id === t0.id)}>{t.name}</button>
+            ))}
+          </div>
+        </div>
+        <div class="v2-field">
+          <small id="v2SizeLabel">{t0.sizeLabel}</small>
+          <div class="v2-pills" id="v2Sizes" role="radiogroup" aria-label="Размер">
+            {t0.sizes.map((z) => <button type="button" class="v2-pill" data-size={z.id} aria-pressed="true">{z.name}</button>)}
+          </div>
+        </div>
+      </div>
+
+      <div class="v2-stage-wrap">
+        <div class="v2-stage" id="v2Stage">
+          <svg class="v2-cord" id="v2Cord" viewBox="0 0 1000 620" aria-hidden="true"></svg>
+          <div class="v2-beads" id="v2Beads" role="group" aria-label="Бусины браслета"></div>
+          <p class="v2-empty" id="v2Empty">Перетащите камень из ленты на браслет</p>
+          <div class="v2-badge" aria-live="polite"><small>Итого</small><b id="v2StageTotal">{rub(z0.price)}</b></div>
+        </div>
+      </div>
+
+      <div class="v2-tools">
+        <button type="button" class="v2-auto" id="v2Auto">
+          <span class="v2-auto-ico" aria-hidden="true">⚡</span>
+          <span><b>Собрать автоматически</b><small>из ваших бусин, до конца</small></span>
+        </button>
+        <div class="v2-mini-tools">
+          <button type="button" class="v2-link" id="v2Undo" disabled>Отменить</button>
+          <button type="button" class="v2-link" id="v2Clear">Очистить</button>
+          <span class="v2-tpl">Шаблон:
+            {TEMPLATES.map((t) => <button type="button" class="v2-link" data-tpl={t.id}>{t.name}</button>)}
+          </span>
+        </div>
+        <p class="v2-msg" id="v2Msg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="v2-palette">
+        <div class="v2-tabs" role="tablist">
+          <button type="button" class="v2-tab" data-tab="all" aria-pressed="true">Все бусины <span>{BEADS.length}</span></button>
+          <button type="button" class="v2-tab" data-tab="used" aria-pressed="false">В браслете</button>
+          <button type="button" class="v2-tab" data-tab="fav" aria-pressed="false">♡ Избранное</button>
+          <label class="v2-search"><span class="visually-hidden">Поиск камня</span><input type="search" id="v2Search" placeholder="Найти камень" autocomplete="off" /></label>
+        </div>
+        <div class="v2-track" id="v2Track">
+          {BEADS.map((s) => (
+            <div class="v2-item" data-id={s.id} data-name={s.name.toLowerCase()}>
+              <button type="button" class="v2-take" aria-label={`Добавить ${s.name} в браслет`}>
+                <img src={`${img}bead-${s.id === FILLER ? 'white' : s.id}.png`} alt="" width="64" height="64" draggable="false" />
+              </button>
+              <span class="v2-iname">{s.name}</span>
+              <span class="v2-iprice">{s.price ? '+' + rub(s.price) : 'в цене'}</span>
+              <button type="button" class="v2-fav" aria-pressed="false" aria-label={`В избранное: ${s.name}`}>♡</button>
+            </div>
+          ))}
+        </div>
+        <p class="v2-hint">На компьютере перетаскивайте камни мышью. На телефоне потяните камень вверх, к браслету. Можно и без перетаскивания: нажмите бусину на браслете (или несколько), затем камень в ленте.</p>
+      </div>
+
+      <div class="v2-summary" id="v2Summary">
+        <div class="eyebrow">Ваш браслет</div>
+        <p class="v2-sum-title" id="v2Title">{t0.name}</p>
+        <dl class="v2-lines" id="v2Lines"></dl>
+        <div class="v2-total"><span>Итого</span><b id="v2Total">{rub(z0.price)}</b></div>
+        <div class="v2-actions">
+          <a class="button" id="v2Order" href={master} target="_blank" rel="noopener">Обсудить с мастером</a>
+          <button class="button outline" type="button" id="v2Copy">Скопировать ссылку</button>
+        </div>
+        <p class="v2-status" id="v2Status" role="status" aria-live="polite"></p>
+        <p class="v2-fine">Это новая версия конструктора, она в разработке. Цены и названия ориентировочные, окончательную стоимость подтверждает мастер. По кнопке «Обсудить с мастером» откроется Telegram, а описание браслета скопируется.</p>
+      </div>
+    </div>
+  </section>
+
+  <script type="application/json" id="v2Data" set:html={data}></script>
+  <script is:inline>
+    (function () {
+      var D = JSON.parse(document.getElementById('v2Data').textContent);
+      var $ = function (id) { return document.getElementById(id); };
+      var stage = $('v2Stage'), beadsBox = $('v2Beads'), cord = $('v2Cord'), track = $('v2Track');
+      var imgDir = document.querySelector('.v2-take img').getAttribute('src').replace(/bead-[a-z-]+\.png$/, '');
+      var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; };
+      var byId = function (list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; };
+      var bead = function (id) { return byId(D.BEADS, id); };
+      var FILL = D.FILLER;
+      // белая бусина-заготовка нарисована отдельно, матовой; остальные — картинки камней
+      var sprite = function (id) { return imgDir + 'bead-' + (id === FILL ? 'white' : id) + '.png'; };
+      // холст 1000×620: браслет — наклонённый овал, задняя часть дальше от зрителя
+      var CX = 500, CY = 300, RX = 340, RY = 165;
+
+      var type = D.TYPES[0], size = type.sizes[0];
+      var slots = [], sel = [], undo = [], tab = 'all', favs = [], orderText = '';
+
+      function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+      function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+      favs = load('viva-kb2-favs') || [];
+
+      function fit(n) { while (slots.length < n) slots.push(FILL); slots.length = n; sel = sel.filter(function (i) { return i < n; }); }
+      function snapshot() { return { t: type.id, z: size.id, s: slots.slice() }; }
+      function remember() { undo.push(snapshot()); if (undo.length > 60) undo.shift(); $('v2Undo').disabled = false; }
+      function restore(st) {
+        type = byId(D.TYPES, st.t); size = byId(type.sizes, st.z);
+        slots = (st.s || []).map(function (id) { return bead(id).id; }); fit(size.count);
+      }
+
+      // позиции бусин: угол по овалу, глубина 0 (сзади) … 1 (спереди)
+      function layout() {
+        var n = slots.length, gap = type.gap, pts = [];
+        var span = 360 - gap, step = gap ? span / (n - 1) : 360 / n, start = gap ? -90 + gap / 2 : 90;
+        var dRad = step * Math.PI / 180, D0 = Math.min(138, RX * dRad * 1.02);
+        for (var i = 0; i < n; i++) {
+          var a = (start + i * step) * Math.PI / 180;
+          var depth = (Math.sin(a) + 1) / 2, sc = 0.7 + 0.3 * depth;
+          pts.push({ x: CX + RX * Math.cos(a), y: CY + RY * Math.sin(a), d: D0 * sc, depth: depth });
+        }
+        return pts;
+      }
+
+      function drawCord(pts) {
+        var s = '<defs><radialGradient id="v2Shade" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#403d2f" stop-opacity=".22"/><stop offset="1" stop-color="#403d2f" stop-opacity="0"/></radialGradient></defs>';
+        s += '<ellipse cx="' + CX + '" cy="' + (CY + RY + 70) + '" rx="' + (RX + 40) + '" ry="46" fill="url(#v2Shade)"/>';
+        if (type.gap) {
+          // плетёный замок: дуга сзади с узелками и шнур к крайним бусинам
+          var g = type.gap / 2 + 4, a0 = (-90 - g) * Math.PI / 180, a1 = (-90 + g) * Math.PI / 180;
+          var p0 = [CX + RX * Math.cos(a0), CY + RY * Math.sin(a0)], p1 = [CX + RX * Math.cos(a1), CY + RY * Math.sin(a1)];
+          var arc = 'M' + p0[0] + ' ' + p0[1] + ' A' + RX + ' ' + RY + ' 0 0 1 ' + p1[0] + ' ' + p1[1];
+          s += '<path d="' + arc + '" fill="none" stroke="#24221d" stroke-width="28" stroke-linecap="round"/>';
+          // узелки плетения: наклонные петли попеременно влево и вправо
+          var knots = 22;
+          for (var k = 0; k <= knots; k++) {
+            var a = a0 + (a1 - a0) * k / knots, x = CX + RX * Math.cos(a), y = CY + RY * Math.sin(a);
+            var tan = Math.atan2(RY * Math.cos(a), -RX * Math.sin(a)) * 180 / Math.PI;
+            [-1, 1].forEach(function (side) {
+              s += '<ellipse cx="' + x.toFixed(1) + '" cy="' + (y + side * 6).toFixed(1) + '" rx="9" ry="5.5" fill="#3b3830" stroke="#14130f" stroke-width="1.2" transform="rotate(' + (tan + side * 32).toFixed(1) + ' ' + x.toFixed(1) + ' ' + (y + side * 6).toFixed(1) + ')"/>';
+            });
+          }
+        } else {
+          s += '<ellipse cx="' + CX + '" cy="' + CY + '" rx="' + RX + '" ry="' + RY + '" fill="none" stroke="#c9c4b4" stroke-width="3"/>';
+        }
+        cord.innerHTML = s;
+      }
+
+      function render() {
+        var pts = layout();
+        drawCord(pts);
+        beadsBox.innerHTML = '';
+        pts.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return a[0].depth - b[0].depth; }).forEach(function (pi) {
+          var p = pi[0], i = pi[1], s = bead(slots[i]);
+          var el = document.createElement('img');
+          el.className = 'v2-bead' + (sel.indexOf(i) >= 0 ? ' is-sel' : '');
+          el.src = sprite(s.id); el.alt = ''; el.draggable = false;
+          el.setAttribute('data-i', i); el.setAttribute('role', 'button'); el.tabIndex = 0;
+          el.setAttribute('aria-label', 'Бусина ' + (i + 1) + ': ' + s.name + (sel.indexOf(i) >= 0 ? ', выделена' : ''));
+          el.style.left = (p.x - p.d / 2) / 10 + '%'; el.style.top = (p.y - p.d / 2) / 6.2 + '%';
+          el.style.width = p.d / 10 + '%'; el.style.zIndex = Math.round(p.depth * 100);
+          beadsBox.appendChild(el);
+        });
+        $('v2Empty').hidden = slots.some(function (id) { return id !== FILL; });
+        summary();
+      }
+
+      function pills() {
+        document.querySelectorAll('#v2Types .v2-pill').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-type') === type.id)); });
+        var box = $('v2Sizes'); box.innerHTML = '';
+        type.sizes.forEach(function (z) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'v2-pill'; b.setAttribute('data-size', z.id);
+          b.setAttribute('aria-pressed', String(z.id === size.id)); b.textContent = z.name; box.appendChild(b);
+        });
+        $('v2SizeLabel').textContent = type.sizeLabel;
+      }
+
+      function summary() {
+        var groups = {}, ids = [], beadsSum = 0;
+        slots.forEach(function (id) { if (!groups[id]) { groups[id] = 0; ids.push(id); } groups[id]++; });
+        var dl = $('v2Lines'); dl.innerHTML = '';
+        var row = function (a, b) { var d = document.createElement('div'); var t = document.createElement('dt'); t.textContent = a; var v = document.createElement('dd'); v.textContent = b; d.appendChild(t); d.appendChild(v); dl.appendChild(d); };
+        row(type.name + ', ' + size.name + ' · ' + slots.length + ' бусин 10 мм', rub(size.price));
+        ids.sort(function (a, b) { return (a === FILL ? 0 : 1) - (b === FILL ? 0 : 1); }).forEach(function (id) {
+          var s = bead(id), sum = s.price * groups[id]; beadsSum += sum;
+          row(s.name + ' × ' + groups[id], sum ? '+' + rub(sum) : 'в цене');
+        });
+        var total = size.price + beadsSum;
+        $('v2Total').textContent = rub(total); $('v2StageTotal').textContent = rub(total);
+        var used = ids.filter(function (id) { return id !== FILL; });
+        $('v2Title').textContent = type.name + (used.length ? ': ' + used.map(function (id) { return bead(id).name; }).join(', ') : ', белый');
+        var hash = '#t=' + type.id + '&z=' + size.id + '&s=' + slots.join(',');
+        if (location.hash !== hash) history.replaceState(null, '', hash);
+        store('viva-kb2', snapshot());
+        orderText = 'Здравствуйте! Хочу браслет из конструктора ViVA:\n' + type.name + ', ' + size.name + ', ' + slots.length + ' бусин 10 мм\n' +
+          'Бусины по кругу, начиная от ' + (type.gap ? 'замка' : 'передней') + ': ' + slots.map(function (id) { return bead(id).name; }).join(', ') + '\n' +
+          'Сумма по конструктору: ' + rub(total) + '\n' + location.href;
+        $('v2Status').textContent = '';
+        filterTrack();
+      }
+
+      function say(t) { $('v2Msg').textContent = t; }
+
+      // ставим камень: в выделенные бусины, иначе на первое белое место
+      function put(id) {
+        remember();
+        if (sel.length) { sel.forEach(function (i) { slots[i] = id; }); sel = []; }
+        else {
+          var i = slots.indexOf(FILL);
+          if (i < 0) { undo.pop(); say('Свободных белых мест нет. Нажмите бусину на браслете, чтобы заменить её, или перетащите камень прямо на неё.'); return; }
+          slots[i] = id;
+        }
+        say(''); render();
+      }
+
+      // ---------- перетаскивание ----------
+      var drag = null;
+      function centers() {
+        var out = [];
+        beadsBox.querySelectorAll('.v2-bead').forEach(function (el) {
+          var r = el.getBoundingClientRect(); out.push({ i: Number(el.getAttribute('data-i')), x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2, el: el });
+        });
+        return out;
+      }
+      // ближайшее место: в пределах сцены с запасом, как «притягивание»
+      function nearest(x, y) {
+        var r = stage.getBoundingClientRect(), padX = r.width * 0.08, padY = r.height * 0.18;
+        if (x < r.left - padX || x > r.right + padX || y < r.top - padY || y > r.bottom + padY) return null;
+        var best = null, bd = 1e9;
+        centers().forEach(function (c) { var d = (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y); if (d < bd) { bd = d; best = c; } });
+        return best;
+      }
+      function mark(t) {
+        beadsBox.querySelectorAll('.is-target').forEach(function (e) { e.classList.remove('is-target'); });
+        if (t) t.el.classList.add('is-target');
+      }
+      function startDrag(e) {
+        drag.on = true;
+        var g = document.createElement('img'); g.className = 'v2-ghost'; g.src = sprite(drag.id); g.alt = '';
+        var c = centers(), w = c.length ? Math.max.apply(null, c.map(function (q) { return q.r * 2; })) : 64;
+        g.style.width = g.style.height = Math.max(44, w) + 'px';
+        document.body.appendChild(g); drag.ghost = g;
+        document.documentElement.classList.add('v2-dragging');
+        if (drag.src === 'bead') drag.fromEl.classList.add('is-lifted');
+        if (drag.src === 'palette') drag.item.classList.add('is-taken');
+        moveDrag(e);
+      }
+      function moveDrag(e) {
+        drag.ghost.style.transform = 'translate(' + (e.clientX - drag.ghost.offsetWidth / 2) + 'px,' + (e.clientY - drag.ghost.offsetHeight / 2) + 'px)';
+        var t = nearest(e.clientX, e.clientY);
+        if (t && drag.src === 'bead' && t.i === drag.from) t = null;
+        drag.target = t; mark(t);
+      }
+      function endDrag() {
+        if (!drag) return;
+        if (drag.timer) clearTimeout(drag.timer);
+        var d = drag; drag = null;
+        document.documentElement.classList.remove('v2-dragging');
+        if (d.ghost) d.ghost.remove();
+        if (d.item) d.item.classList.remove('is-taken');
+        mark(null);
+        if (!d.on) {
+          // короткое нажатие без перетаскивания
+          if (d.src === 'palette') put(d.id);
+          else { var k = sel.indexOf(d.from); if (k >= 0) sel.splice(k, 1); else sel.push(d.from); render(); say(sel.length ? 'Выделено бусин: ' + sel.length + '. Теперь нажмите камень в ленте.' : ''); }
+          return;
+        }
+        if (d.src === 'palette') {
+          if (!d.target) return render();
+          remember(); slots[d.target.i] = d.id; sel = [];
+        } else {
+          remember();
+          if (d.target) { var a = slots[d.from]; slots[d.from] = slots[d.target.i]; slots[d.target.i] = a; }
+          else slots[d.from] = FILL;
+          sel = [];
+        }
+        say(''); render();
+      }
+
+      function begin(e, info) {
+        if (e.button > 0) return;
+        drag = info; drag.on = false; drag.x0 = e.clientX; drag.y0 = e.clientY; drag.touch = e.pointerType !== 'mouse';
+        // на телефоне долгое нажатие тоже начинает перетаскивание
+        if (drag.touch && info.src === 'palette') drag.timer = setTimeout(function () { if (drag && !drag.on) { startDrag({ clientX: drag.x0, clientY: drag.y0 }); } }, 280);
+      }
+      window.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.on) {
+          var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          // в ленте горизонтальный жест — прокрутка, вертикальный — перетаскивание
+          if (drag.touch && drag.src === 'palette' && Math.abs(dx) > Math.abs(dy)) { clearTimeout(drag.timer); drag = null; return; }
+          clearTimeout(drag.timer); startDrag(e);
+        } else { e.preventDefault(); moveDrag(e); }
+      }, { passive: false });
+      window.addEventListener('pointerup', endDrag);
+      window.addEventListener('pointercancel', function () { if (drag && !drag.on) { clearTimeout(drag.timer); drag = null; } else endDrag(); });
+
+      track.addEventListener('pointerdown', function (e) {
+        var b = e.target.closest('.v2-take'); if (!b) return;
+        var item = b.closest('.v2-item');
+        begin(e, { src: 'palette', id: item.getAttribute('data-id'), item: item });
+      });
+      track.addEventListener('click', function (e) {
+        var f = e.target.closest('.v2-fav');
+        if (f) { var id = f.closest('.v2-item').getAttribute('data-id'), k = favs.indexOf(id); if (k >= 0) favs.splice(k, 1); else favs.push(id); store('viva-kb2-favs', favs); filterTrack(); return; }
+        // клавиатура: Enter на камне
+        var b = e.target.closest('.v2-take'); if (b && e.detail === 0) put(b.closest('.v2-item').getAttribute('data-id'));
+      });
+      track.addEventListener('contextmenu', function (e) { if (e.target.closest('.v2-take')) e.preventDefault(); });
+      beadsBox.addEventListener('pointerdown', function (e) {
+        var el = e.target.closest('.v2-bead'); if (!el) return;
+        e.preventDefault();
+        begin(e, { src: 'bead', from: Number(el.getAttribute('data-i')), id: slots[Number(el.getAttribute('data-i'))], fromEl: el });
+      });
+      beadsBox.addEventListener('keydown', function (e) {
+        var el = e.target.closest('.v2-bead'); if (!el || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault(); var i = Number(el.getAttribute('data-i')), k = sel.indexOf(i);
+        if (k >= 0) sel.splice(k, 1); else sel.push(i); render();
+        var again = beadsBox.querySelector('[data-i="' + i + '"]'); if (again) again.focus();
+      });
+
+      // ---------- лента ----------
+      function filterTrack() {
+        var q = $('v2Search').value.trim().toLowerCase();
+        var used = slots.filter(function (id, i) { return id !== FILL && slots.indexOf(id) === i; });
+        var shown = 0;
+        track.querySelectorAll('.v2-item').forEach(function (it) {
+          var id = it.getAttribute('data-id'), fav = favs.indexOf(id) >= 0;
+          var ok = (tab === 'all' || (tab === 'used' && used.indexOf(id) >= 0) || (tab === 'fav' && fav)) && (!q || it.getAttribute('data-name').indexOf(q) >= 0);
+          it.hidden = !ok; if (ok) shown++;
+          var f = it.querySelector('.v2-fav'); f.setAttribute('aria-pressed', String(fav)); f.textContent = fav ? '♥' : '♡';
+        });
+        track.setAttribute('data-empty', shown ? '' : (tab === 'fav' ? 'Отметьте камни сердечком — они появятся здесь.' : tab === 'used' ? 'В браслете пока только белые бусины.' : 'Ничего не нашлось.'));
+      }
+      document.querySelectorAll('.v2-tab').forEach(function (b) {
+        b.addEventListener('click', function () {
+          tab = b.getAttribute('data-tab');
+          document.querySelectorAll('.v2-tab').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          filterTrack();
+        });
+      });
+      $('v2Search').addEventListener('input', filterTrack);
+
+      // ---------- тип, размер, помощники ----------
+      $('v2Types').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-type]'); if (!b || b.getAttribute('data-type') === type.id) return;
+        remember(); type = byId(D.TYPES, b.getAttribute('data-type'));
+        size = byId(type.sizes, type.id === 'stretch' ? '17' : type.sizes[0].id);
+        var before = slots.length; fit(size.count); pills(); render();
+        say(before > slots.length ? 'Бусин стало меньше: последние ' + (before - slots.length) + ' убраны. Их можно вернуть кнопкой «Отменить».' : '');
+      });
+      $('v2Sizes').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-size]'); if (!b) return;
+        remember(); size = byId(type.sizes, b.getAttribute('data-size'));
+        var before = slots.length; fit(size.count); pills(); render();
+        say(before > slots.length ? 'Бусин стало меньше: последние ' + (before - slots.length) + ' убраны. Их можно вернуть кнопкой «Отменить».' : '');
+      });
+      $('v2Auto').addEventListener('click', function () {
+        var used = slots.filter(function (id, i) { return id !== FILL && slots.indexOf(id) === i; });
+        if (!used.length) { say('Сначала перетащите на браслет хотя бы один камень — остальные места заполнятся вашими камнями по очереди.'); return; }
+        if (slots.indexOf(FILL) < 0) { say('Белых мест не осталось — браслет уже собран.'); return; }
+        remember(); var k = 0;
+        slots = slots.map(function (id) { return id === FILL ? used[k++ % used.length] : id; });
+        sel = []; say(''); render();
+      });
+      $('v2Clear').addEventListener('click', function () { remember(); slots = slots.map(function () { return FILL; }); sel = []; say(''); render(); });
+      $('v2Undo').addEventListener('click', function () {
+        var st = undo.pop(); if (!st) return; restore(st); sel = []; pills(); say(''); render();
+        $('v2Undo').disabled = !undo.length;
+      });
+      document.querySelectorAll('[data-tpl]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var t = byId(D.TEMPLATES, b.getAttribute('data-tpl'));
+          remember(); type = byId(D.TYPES, t.type); size = byId(type.sizes, t.size);
+          slots = []; fit(size.count);
+          t.fill.forEach(function (f) { for (var i = f.first; i < slots.length; i += f.step) slots[i] = f.bead; });
+          sel = []; pills(); say(''); render();
+        });
+      });
+
+      function copy(text, done) { if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () {}); }
+      $('v2Order').addEventListener('click', function () { copy(orderText, function () { $('v2Status').textContent = 'Описание браслета скопировано — вставьте его в чат с мастером.'; }); });
+      $('v2Copy').addEventListener('click', function () {
+        if (navigator.clipboard && window.isSecureContext) copy(location.href, function () { $('v2Status').textContent = 'Ссылка на этот браслет скопирована.'; });
+        else prompt('Скопируйте ссылку:', location.href);
+      });
+
+      // ---------- старт: ссылка, затем сохранённый в браузере браслет ----------
+      var p = {};
+      location.hash.replace(/^#/, '').split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+      var saved = p.t ? { t: p.t, z: p.z, s: (p.s || '').split(',') } : load('viva-kb2');
+      if (saved && saved.t) restore(saved); else fit(size.count);
+      pills(); render();
+    })();
+  </script>
+</Layout>
+
+<style is:global>
+  .v2 { padding: 40px 0 96px; background: var(--paper); }
+  .v2-wrap { max-width: 860px; }
+  .v2-head h1 { font-size: clamp(46px, 6vw, 80px); letter-spacing: -.04em; margin: 8px 0 10px; }
+  .v2-head p { max-width: 60ch; color: var(--muted); margin: 0 0 22px; }
+  .v2-pick { display: flex; flex-wrap: wrap; gap: 14px 32px; margin-bottom: 8px; }
+  .v2-field small { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .v2-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .v2-pill { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font: 500 14px var(--sans); cursor: pointer; }
+  .v2-pill:hover { border-color: var(--olive); }
+  .v2-pill[aria-pressed="true"] { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .v2-stage-wrap { position: relative; margin: 10px 0 0; }
+  .v2-stage { position: relative; aspect-ratio: 1000 / 620; background: #fff; border: 1px solid var(--line); overflow: hidden; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .v2-cord, .v2-beads { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .v2-bead { position: absolute; height: auto; aspect-ratio: 1; border-radius: 50%; cursor: grab; touch-action: none; transition: left .22s ease, top .22s ease, width .22s ease, filter .15s; filter: drop-shadow(0 4px 5px rgba(40, 38, 30, .22)); -webkit-touch-callout: none; }
+  .v2-bead:focus-visible { outline: 3px solid #14b8a6; outline-offset: 2px; }
+  .v2-bead.is-sel { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--olive); }
+  .v2-bead.is-target { filter: drop-shadow(0 0 8px #f2a24a) drop-shadow(0 0 16px rgba(242, 162, 74, .85)); }
+  .v2-bead.is-lifted { opacity: .35; }
+  .v2-empty { position: absolute; left: 0; right: 0; top: 46%; margin: 0; text-align: center; font: italic 500 clamp(17px, 2.4vw, 24px)/1.2 var(--serif); color: var(--muted); pointer-events: none; z-index: 120; }
+  .v2-badge { position: absolute; right: 12px; bottom: 12px; z-index: 130; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; padding: 8px 12px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
+  .v2-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
+  .v2-badge b { font: 600 28px/1 var(--serif); color: var(--ink); white-space: nowrap; }
+  .v2-ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; border-radius: 50%; filter: drop-shadow(0 10px 12px rgba(40, 38, 30, .35)); }
+  html.v2-dragging, html.v2-dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+  .v2-tools { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 18px 0 8px; }
+  .v2-auto { display: inline-flex; align-items: center; gap: 12px; padding: 10px 22px 10px 12px; border: 2px solid transparent; border-radius: 40px; background: linear-gradient(var(--cream), var(--cream)) padding-box, linear-gradient(90deg, #e2799a, #f0b45a) border-box; color: var(--ink); cursor: pointer; text-align: left; }
+  .v2-auto b { display: block; font: 700 14px var(--sans); }
+  .v2-auto small { display: block; font-size: 12px; color: var(--muted); }
+  .v2-auto-ico { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 1px solid var(--line); font-size: 16px; }
+  .v2-mini-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+  .v2-tpl { display: inline-flex; gap: 10px; align-items: center; }
+  .v2-link { padding: 4px 0; border: 0; background: none; color: var(--accent-dark); font: 600 13px var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .v2-link:disabled { color: var(--muted); opacity: .5; cursor: default; text-decoration: none; }
+  .v2-msg { min-height: 1.2em; margin: 0; font-size: 13px; color: var(--accent-dark); text-align: center; }
+  .v2-palette { margin-top: 12px; }
+  .v2-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .v2-tab { min-height: 34px; padding: 6px 12px; border: 0; border-radius: 20px; background: var(--cream); color: var(--ink); font: 600 12px var(--sans); cursor: pointer; }
+  .v2-tab span { opacity: .6; font-weight: 500; }
+  .v2-tab[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .v2-search input { min-height: 34px; width: 160px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 20px; background: #fff; font: 13px var(--sans); }
+  .v2-track { display: flex; gap: 4px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; touch-action: pan-x; }
+  .v2-track[data-empty]:not([data-empty=""])::before { content: attr(data-empty); padding: 18px 4px; font-size: 13px; color: var(--muted); }
+  .v2-item { position: relative; flex: none; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; scroll-snap-align: start; text-align: center; }
+  .v2-item[hidden] { display: none; }
+  .v2-take { width: 70px; height: 70px; padding: 0; border: 0; background: none; border-radius: 50%; cursor: grab; touch-action: pan-x; -webkit-touch-callout: none; }
+  .v2-take img { width: 64px; height: 64px; display: block; margin: 3px; border-radius: 50%; filter: drop-shadow(0 3px 4px rgba(40, 38, 30, .2)); -webkit-user-drag: none; }
+  .v2-take:hover img { transform: translateY(-2px); }
+  .v2-take:focus-visible { outline: 3px solid #14b8a6; outline-offset: 2px; }
+  .v2-item.is-taken .v2-take img { opacity: .25; }
+  .v2-iname { font-size: 11px; line-height: 1.2; color: var(--ink); }
+  .v2-iprice { font-size: 10.5px; color: var(--muted); }
+  .v2-fav { position: absolute; top: 2px; right: 6px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .9); color: #d9644a; font-size: 15px; line-height: 26px; cursor: pointer; }
+  .v2-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+  .v2-summary { margin-top: 30px; background: var(--cream); border: 1px solid var(--line); padding: 24px; }
+  .v2-sum-title { font: 500 28px/1.1 var(--serif); margin: 8px 0 12px; }
+  .v2-lines { margin: 0; }
+  .v2-lines div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .v2-lines dt { color: var(--muted); }
+  .v2-lines dd { margin: 0; white-space: nowrap; }
+  .v2-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 18px; font-weight: 600; }
+  .v2-total b { font: 600 30px/1 var(--serif); }
+  .v2-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .v2-actions .button { min-height: 48px; cursor: pointer; font-family: var(--sans); }
+  .v2-status { min-height: 1.2em; margin: 8px 0 0; font-size: 13px; color: var(--accent-dark); }
+  .v2-fine { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 620px) {
+    .v2 { padding: 20px 0 48px; }
+    .v2-head h1 { font-size: 46px; }
+    .v2-head p { font-size: 14px; margin-bottom: 14px; }
+    /* браслет остаётся на виду, пока листаете ленту камней */
+    .v2-stage-wrap { position: sticky; top: 70px; z-index: 20; margin-left: -14px; margin-right: -14px; }
+    .v2-stage { border-left: 0; border-right: 0; }
+    .v2-badge { right: 8px; bottom: 8px; padding: 6px 9px; }
+    .v2-badge b { font-size: 22px; }
+    .v2-search input { width: 120px; }
+    .v2-summary { padding: 20px 16px; }
+    .v2-actions .button { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .v2-bead { transition: none; } }
+</style>
