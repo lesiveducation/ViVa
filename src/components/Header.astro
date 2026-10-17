@@ -2,7 +2,7 @@
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const current = Astro.url.pathname;
 const links = [
-  ['','Главная'],['catalog/','Каталог'],['custom/','На заказ'],['events/','Сертификаты'],['about/','О ViVA'],['blog/','Журнал'],['contacts/','Контакты']
+  ['','Главная'],['catalog/','Каталог'],['custom/','На заказ'],['konstruktor/','Конструктор'],['events/','Сертификаты'],['about/','О ViVA'],['blog/','Журнал'],['contacts/','Контакты']
 ];
 const isActive = (href) => href === '' ? current === base : current.startsWith(`${base}${href}`);
 ---

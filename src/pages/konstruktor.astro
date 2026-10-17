@@ -43,6 +43,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             </defs>
             <ellipse id="kbBailRing" cx="0" cy="0" rx="0" ry="0" fill="none" stroke="url(#kbSilver)" stroke-width="8" />
           </svg>
+          <div class="kb-badge" aria-live="polite"><small>Итого</small><b id="kbStageTotal">{rub(b0.price + s0.price)}</b></div>
         </div>
         <p class="kb-cap" id="kbCap">{b0.name} · {s0.name}</p>
         <p class="kb-note">Превью условное: камень посажен на фотографию основы. Перед изготовлением мастер согласует с вами детали.</p>
@@ -173,7 +174,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         var c = stage.cloneNode(true);
         c.removeAttribute('id');
         c.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
-        c.querySelectorAll('defs').forEach(function (n) { n.remove(); });
+        c.querySelectorAll('defs, .kb-badge').forEach(function (n) { n.remove(); });
         $('kbMini').innerHTML = ''; $('kbMini').appendChild(c);
       }
 
@@ -202,7 +203,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
         $('kbStoneName').textContent = s.name + ', ' + s.cut.toLowerCase(); $('kbStonePrice').textContent = '+' + rub(s.price);
         $('kbSizeName').textContent = b.sizeLabel; $('kbSize').textContent = st.z;
-        $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total);
+        $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total); $('kbStageTotal').textContent = rub(total);
 
         var hash = '#b=' + b.id + '&s=' + s.id + '&z=' + encodeURIComponent(st.z);
         if (location.hash !== hash) history.replaceState(null, '', hash);
@@ -261,6 +262,9 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-bail { pointer-events: none; }
   .kb-stone { height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
   .kb-stage.kb-fading .kb-layer { opacity: 0; }
+  .kb-badge { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 14px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
+  .kb-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
+  .kb-badge b { font: 600 30px/1 var(--serif); color: var(--ink); white-space: nowrap; }
   .kb-cap { margin: 14px 0 0; font: italic 500 22px/1.2 var(--serif); color: var(--muted); text-align: center; }
   .kb-note { margin: 6px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
   .kb-nojs { background: var(--cream); padding: 10px 14px; font-size: 13px; }
@@ -325,6 +329,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
     .kb-bar-total small { display: block; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
     .kb-bar-total b { font: 600 26px/1 var(--serif); }
     .kb-bar .button { min-height: 44px; }
+    .kb-badge { right: 8px; bottom: 8px; padding: 7px 10px; }
+    .kb-badge b { font-size: 24px; }
     .site-footer { padding-bottom: 96px; }
   }
 </style>
