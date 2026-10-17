@@ -47,6 +47,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             </defs>
             <g id="kbBails"></g>
           </svg>
+          <div class="kb-layer kb-hot" id="kbHot" role="group" aria-label="Позиции камней на превью"></div>
           <div class="kb-badge" aria-live="polite"><small>Итого</small><b id="kbStageTotal">{rub(total0)}</b></div>
         </div>
         <p class="kb-cap" id="kbCap">{b0.name} · {s0.name}</p>
@@ -210,7 +211,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbStoneNum').textContent = b.counts.length < 2 ? 3 : 4;
         $('kbCutSet').hidden = isBeads(b); $('kbBeadSet').hidden = !isBeads(b);
         if (!on) return;
-        $('kbSlotHint').textContent = isBeads(b) ? 'В шаблоне 5 бусин хрусталя. Выберите бусину, затем камень для неё — можно заменить от одной до всех пяти.' : 'Выберите позицию на изделии, затем камень для неё.';
+        $('kbSlotHint').textContent = isBeads(b) ? 'В шаблоне 5 бусин хрусталя. Нажмите на бусину на фото или на её номер ниже, затем выберите камень — можно заменить от одной до всех пяти.' : 'Нажмите на камень на фото или на его номер ниже, затем выберите камень для этой позиции.';
         $('kbAll').textContent = isBeads(b) ? 'Сделать все пять как выбранная' : 'Сделать все камни как выбранный';
         var row = $('kbSlotRow'); row.innerHTML = '';
         order(n, b).forEach(function (i, k) {
@@ -221,9 +222,31 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           var im = document.createElement('img'); im.src = chip(s.id); im.alt = '';
           var sp = document.createElement('span'); sp.textContent = k + 1;
           btn.appendChild(im); btn.appendChild(sp);
-          btn.addEventListener('click', function () { active = i; syncStoneRadios(); renderSlots(b, n); });
+          btn.addEventListener('click', function () { selectSlot(i); });
           row.appendChild(btn);
         });
+      }
+      // выбор позиции: кнопкой под превью или нажатием на камень на фотографии
+      var cur = null;
+      function selectSlot(i) { active = i; syncStoneRadios(); renderSlots(cur.b, cur.n); markHot(); }
+      function markHot() {
+        $('kbHot').querySelectorAll('.kb-spot').forEach(function (h) {
+          var on = Number(h.getAttribute('data-i')) === active;
+          h.classList.toggle('is-active', on); h.setAttribute('aria-pressed', String(on));
+        });
+      }
+      function renderHot(b, n, spots) {
+        var box = $('kbHot'); box.innerHTML = '';
+        if (!perSlot(b, n)) return;
+        order(n, b).forEach(function (i, k) {
+          var sp = spots[i]; if (!sp) return;
+          var h = document.createElement('button'); h.type = 'button'; h.className = 'kb-spot'; h.setAttribute('data-i', i);
+          h.setAttribute('aria-label', 'Выбрать позицию ' + (k + 1) + ': ' + st(slots[i]).name);
+          h.style.left = pct(sp[0]); h.style.top = pct(sp[1]); h.style.width = pct(2 * sp[2]); h.style.height = pct(2 * sp[2]);
+          h.addEventListener('click', function () { selectSlot(i); });
+          box.appendChild(h);
+        });
+        markHot();
       }
       function syncStoneRadios() {
         var r = form.querySelector('input[name=stone][value="' + slots[active] + '"]'); if (r) r.checked = true;
@@ -231,7 +254,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
 
       // камни: [x, y, ширина, id] в пикселях холста 1000×1000; центральный рисуется последним, поверх боковых
       function place(b, n) {
-        var m = b.mount, items = [], rings = '';
+        var m = b.mount, items = [], rings = '', spots = [];
+        cur = { b: b, n: n };
         if (m.type === 'pendant') {
           var sc = n === 1 ? 1 : n === 3 ? 0.62 : 0.52;
           var bs = 46 * m.k * (n === 1 ? 1 : 0.85);
@@ -239,12 +263,14 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             var s = st(slots[i]);
             var x = m.points[i][0], y = m.points[i][1], w = s.pendantW * m.k * sc;
             items.push([x - w / 2, y + bs * 0.75, w, s.id]);
+            spots[i] = [x, y + bs * 0.75 + w * s.ratio / 2, Math.max(w, w * s.ratio) / 2];
             rings += '<ellipse cx="' + x + '" cy="' + (y - bs * 0.1 + bs / 2) + '" rx="' + bs * 0.275 + '" ry="' + bs / 2 + '" fill="none" stroke="url(#kbSilver)" stroke-width="' + Math.max(5, bs * 0.17) + '"/>';
           }
           bail.style.display = ''; prongs.hidden = true;
         } else if (m.type === 'beads') {
           // хрусталь уже есть на фотографии шаблона — рисуем только заменённые бусины
           m.points.forEach(function (p, i) {
+            spots[i] = [p[0], p[1], p[2] * m.f];
             if (slots[i] === 'crystal') return;
             var d = 2 * p[2] * m.f;
             items.push([p[0] - d / 2, p[1] - d / 2, d, slots[i], 'bead']);
@@ -269,13 +295,14 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           im.style.left = pct(it[0]); im.style.top = pct(it[1]); im.style.width = pct(it[2]);
           stonesBox.appendChild(im);
         });
+        renderHot(b, n, spots);
       }
 
       function syncMini() {
         var c = stage.cloneNode(true);
         c.removeAttribute('id');
         c.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
-        c.querySelectorAll('defs, .kb-badge').forEach(function (n) { n.remove(); });
+        c.querySelectorAll('defs, .kb-badge, .kb-hot').forEach(function (n) { n.remove(); });
         $('kbMini').innerHTML = ''; $('kbMini').appendChild(c);
       }
 
@@ -414,6 +441,11 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-stones-layer { inset: 0; width: 100%; height: 100%; }
   .kb-stone { position: absolute; height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
   .kb-stage.kb-fading .kb-layer { opacity: 0; }
+  .kb-hot { inset: 0; z-index: 1; pointer-events: none; }
+  .kb-spot { position: absolute; min-width: 40px; min-height: 40px; transform: translate(-50%, -50%); padding: 0; border: 2px dashed rgba(255, 255, 255, .85); border-radius: 50%; background: none; box-shadow: 0 0 0 1px rgba(64, 61, 47, .25); cursor: pointer; pointer-events: auto; transition: border-color .15s, box-shadow .15s; }
+  .kb-spot:hover { border-style: solid; border-color: #fff; }
+  .kb-spot.is-active { border: 3px solid #fff; box-shadow: 0 0 0 3px var(--olive), 0 4px 14px rgba(64, 61, 47, .35); }
+  .kb-spot:focus-visible { outline: 3px solid #14b8a6; outline-offset: 3px; }
   .kb-badge { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 14px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
   .kb-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
   .kb-badge b { font: 600 30px/1 var(--serif); color: var(--ink); white-space: nowrap; }
