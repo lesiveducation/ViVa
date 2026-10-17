@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { BASES, STONES } from '../data/konstruktor.js';
+import { BASES, STONES, BEADS } from '../data/konstruktor.js';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const img = `${base}images/konstruktor/`;
@@ -8,7 +8,7 @@ const master = 'https://t.me/vafanasievav';
 const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 const b0 = BASES[2];
 const s0 = STONES[1];
-const data = JSON.stringify({ BASES, STONES });
+const data = JSON.stringify({ BASES, STONES, BEADS });
 const add0 = b0.sizeAdd[b0.sizes.indexOf(b0.sizeDefault)];
 const total0 = b0.price + add0 + s0.price;
 const stonesWord = (n) => (n === 1 ? 'камень' : n < 5 ? 'камня' : 'камней');
@@ -79,7 +79,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
               ))}
             </div>
           </fieldset>
-          <fieldset class="kb-step">
+          <fieldset class="kb-step" id="kbCountStep">
             <legend><span class="kb-num">3</span> Количество камней</legend>
             <div class="kb-sizes" id="kbCounts">
               {b0.counts.map((c) => (
@@ -90,13 +90,13 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           </fieldset>
 
           <fieldset class="kb-step">
-            <legend><span class="kb-num">4</span> <span id="kbStoneLegend">Камень</span></legend>
+            <legend><span class="kb-num" id="kbStoneNum">4</span> <span id="kbStoneLegend">Камень</span></legend>
             <div class="kb-slots" id="kbSlots" hidden>
-              <p class="kb-hint">Выберите позицию на изделии, затем камень для неё.</p>
+              <p class="kb-hint" id="kbSlotHint">Выберите позицию на изделии, затем камень для неё.</p>
               <div class="kb-slot-row" id="kbSlotRow" role="group" aria-label="Позиции камней"></div>
               <button class="kb-link" type="button" id="kbAll">Сделать все камни как выбранный</button>
             </div>
-            <div class="kb-cards kb-stones">
+            <div class="kb-cards kb-stones" id="kbCutSet">
               {STONES.map((s) => (
                 <label class="kb-card">
                   <input type="radio" name="stone" value={s.id} checked={s.id === s0.id} />
@@ -104,6 +104,17 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                   <span class="kb-name">{s.name}</span>
                   <span class="kb-meta">{s.cut} · {s.mood}</span>
                   <span class="kb-price">+{rub(s.price)}</span>
+                </label>
+              ))}
+            </div>
+            <div class="kb-cards kb-stones kb-beads" id="kbBeadSet" hidden>
+              {BEADS.map((s) => (
+                <label class="kb-card">
+                  <input type="radio" name="stone" value={s.id} />
+                  <span class="kb-chip"><img src={`${img}bead-${s.id}.png`} alt="" loading="lazy" /></span>
+                  <span class="kb-name">{s.name}</span>
+                  <span class="kb-meta">{s.cut} · {s.mood}</span>
+                  <span class="kb-price">{s.price ? '+' + rub(s.price) : 'в цене'}</span>
                 </label>
               ))}
             </div>
@@ -152,6 +163,14 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       var pct = function (v) { return (v / 10) + '%'; };
       var word = function (n) { return n === 1 ? 'камень' : n < 5 ? 'камня' : 'камней'; };
       var orderText = '', shownBase = '';
+      var ALL = D.STONES.concat(D.BEADS);
+      var st = function (id) { return byId(ALL, id); };
+      var isBeads = function (b) { return b.mount.type === 'beads'; };
+      var setOf = function (b) { return isBeads(b) ? D.BEADS : D.STONES; };
+      var isBead = function (id) { return D.BEADS.some(function (s) { return s.id === id; }); };
+      var chip = function (id) { return imgDir + (isBead(id) ? 'bead-' : 'chip-') + id + '.png'; };
+      // выбор камней запоминается отдельно для бусинного браслета и для остальных основ
+      var memo = {}, curSet = '', beadsLoaded = false;
 
       // slots[i] — камень на позиции i (0 — центральная); active — позиция, которую сейчас меняют
       var slots = [form.querySelector('input[name=stone]:checked').value], active = 0;
@@ -176,25 +195,30 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       }
       function countOf(b, n) { for (var i = 0; i < b.counts.length; i++) if (b.counts[i].n === n) return b.counts[i]; return b.counts[0]; }
       function renderCounts(b, keep) {
-        var s = byId(D.STONES, slots[0]);
+        var s = st(slots[0]);
+        $('kbCountStep').hidden = b.counts.length < 2;
         pills('kbCounts', 'count', b.counts.map(function (c) { return { value: c.n, label: c.n + ' ' + word(c.n), note: c.mult === 1 ? 'в цене' : b.mount.type === 'ring' ? '+' + rub(s.price * (c.mult - 1)) : 'цена камня × ' + c.n }; }), countOf(b, keep).n);
       }
-      function perSlot(b, n) { return b.mount.type === 'pendant' && n > 1; }
-      // порядок позиций слева направо для подписи кнопок
-      function order(n) { return n === 5 ? [3, 1, 0, 2, 4] : n === 3 ? [1, 0, 2] : [0]; }
+      function perSlot(b, n) { return isBeads(b) || (b.mount.type === 'pendant' && n > 1); }
+      // порядок позиций для подписи кнопок: подвески слева направо, бусины по часовой стрелке от верхней
+      function order(n, b) { return b && isBeads(b) ? [0, 1, 2, 3, 4] : n === 5 ? [3, 1, 0, 2, 4] : n === 3 ? [1, 0, 2] : [0]; }
 
       function renderSlots(b, n) {
         var on = perSlot(b, n);
         $('kbSlots').hidden = !on;
-        $('kbStoneLegend').textContent = on ? 'Камни' : 'Камень';
+        $('kbStoneLegend').textContent = isBeads(b) ? 'Бусины' : on ? 'Камни' : 'Камень';
+        $('kbStoneNum').textContent = b.counts.length < 2 ? 3 : 4;
+        $('kbCutSet').hidden = isBeads(b); $('kbBeadSet').hidden = !isBeads(b);
         if (!on) return;
+        $('kbSlotHint').textContent = isBeads(b) ? 'В шаблоне 5 бусин хрусталя. Выберите бусину, затем камень для неё — можно заменить от одной до всех пяти.' : 'Выберите позицию на изделии, затем камень для неё.';
+        $('kbAll').textContent = isBeads(b) ? 'Сделать все пять как выбранная' : 'Сделать все камни как выбранный';
         var row = $('kbSlotRow'); row.innerHTML = '';
-        order(n).forEach(function (i, k) {
-          var s = byId(D.STONES, slots[i]);
+        order(n, b).forEach(function (i, k) {
+          var s = st(slots[i]);
           var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kb-slot' + (i === active ? ' is-active' : '');
           btn.setAttribute('aria-pressed', String(i === active));
           btn.setAttribute('aria-label', 'Позиция ' + (k + 1) + ': ' + s.name);
-          var im = document.createElement('img'); im.src = imgDir + 'chip-' + s.id + '.png'; im.alt = '';
+          var im = document.createElement('img'); im.src = chip(s.id); im.alt = '';
           var sp = document.createElement('span'); sp.textContent = k + 1;
           btn.appendChild(im); btn.appendChild(sp);
           btn.addEventListener('click', function () { active = i; syncStoneRadios(); renderSlots(b, n); });
@@ -212,14 +236,22 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           var sc = n === 1 ? 1 : n === 3 ? 0.62 : 0.52;
           var bs = 46 * m.k * (n === 1 ? 1 : 0.85);
           for (var i = n - 1; i >= 0; i--) {
-            var s = byId(D.STONES, slots[i]);
+            var s = st(slots[i]);
             var x = m.points[i][0], y = m.points[i][1], w = s.pendantW * m.k * sc;
             items.push([x - w / 2, y + bs * 0.75, w, s.id]);
             rings += '<ellipse cx="' + x + '" cy="' + (y - bs * 0.1 + bs / 2) + '" rx="' + bs * 0.275 + '" ry="' + bs / 2 + '" fill="none" stroke="url(#kbSilver)" stroke-width="' + Math.max(5, bs * 0.17) + '"/>';
           }
           bail.style.display = ''; prongs.hidden = true;
+        } else if (m.type === 'beads') {
+          // хрусталь уже есть на фотографии шаблона — рисуем только заменённые бусины
+          m.points.forEach(function (p, i) {
+            if (slots[i] === 'crystal') return;
+            var d = 2 * p[2] * m.f;
+            items.push([p[0] - d / 2, p[1] - d / 2, d, slots[i], 'bead']);
+          });
+          bail.style.display = 'none'; prongs.hidden = true;
         } else {
-          var s0 = byId(D.STONES, slots[0]);
+          var s0 = st(slots[0]);
           if (n === 3) [-1, 1].forEach(function (sg) {
             var w = 2 * m.r * m.side.f, h = w * s0.ratio;
             items.push([m.cx + sg * m.side.dx * m.r - w / 2, m.cy + m.side.dy * m.r - h / 2, w, s0.id]);
@@ -232,8 +264,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         bails.innerHTML = rings;
         stonesBox.innerHTML = '';
         items.forEach(function (it) {
-          var im = document.createElement('img'); im.className = 'kb-stone'; im.alt = '';
-          im.src = imgDir + 'stone-' + it[3] + '.png';
+          var im = document.createElement('img'); im.className = it[4] ? 'kb-stone kb-bead' : 'kb-stone'; im.alt = '';
+          im.src = imgDir + (it[4] ? 'bead-' : 'stone-') + it[3] + '.png';
           im.style.left = pct(it[0]); im.style.top = pct(it[1]); im.style.width = pct(it[2]);
           stonesBox.appendChild(im);
         });
@@ -257,12 +289,16 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       function stoneLines(b, c) {
         var lines = [], total = 0;
         if (b.mount.type === 'ring') {
-          var s = byId(D.STONES, slots[0]); total = s.price * c.mult;
+          var s = st(slots[0]); total = s.price * c.mult;
           lines.push([s.name + ', ' + s.cut.toLowerCase() + (c.n > 1 ? ' × ' + c.n + ' (' + c.note + ')' : ''), total]);
         } else {
           var groups = {}, ids = [];
           slots.forEach(function (id) { if (!groups[id]) { groups[id] = 0; ids.push(id); } groups[id]++; });
-          ids.forEach(function (id) { var s = byId(D.STONES, id); var sum = s.price * groups[id]; total += sum; lines.push([s.name + ', ' + s.cut.toLowerCase() + (groups[id] > 1 || c.n > 1 ? ' × ' + groups[id] : ''), sum]); });
+          ids.forEach(function (id) {
+            var s = st(id), sum = s.price * groups[id]; total += sum;
+            var label = isBeads(b) ? s.name + (id === 'crystal' ? ', как в шаблоне' : '') : s.name + ', ' + s.cut.toLowerCase();
+            lines.push([label + (groups[id] > 1 || c.n > 1 ? ' × ' + groups[id] : ''), sum]);
+          });
         }
         return { lines: lines, total: total };
       }
@@ -271,6 +307,14 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         var f = new FormData(form);
         var b = byId(D.BASES, f.get('base'));
         if (changed === 'base') renderSizes(b, f.get('size'));
+        var set = isBeads(b) ? 'bead' : 'cut';
+        if (curSet && set !== curSet) {
+          memo[curSet] = { slots: slots.slice(), active: active };
+          var saved = memo[set] || { slots: [set === 'bead' ? 'crystal' : D.STONES[1].id], active: 0 };
+          slots = saved.slots.slice(); active = saved.active;
+        }
+        curSet = set;
+        if (set === 'bead' && !beadsLoaded) { beadsLoaded = true; D.BEADS.forEach(function (s) { new Image().src = chip(s.id); }); }
         var c = countOf(b, Number(new FormData(form).get('count')) || 1);
         if (changed === 'base' || changed === 'init') renderCounts(b, c.n);
         c = countOf(b, Number(new FormData(form).get('count')) || 1);
@@ -286,20 +330,20 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         shownBase = b.id;
 
         var sizeAdd = b.sizeAdd[Math.max(0, b.sizes.indexOf(z))];
-        var st = stoneLines(b, c);
-        var total = b.price + sizeAdd + st.total;
-        var main = byId(D.STONES, slots[0]);
-        var many = st.lines.length > 1;
+        var sl = stoneLines(b, c);
+        var total = b.price + sizeAdd + sl.total;
+        var main = st(slots[0]);
+        var many = sl.lines.length > 1;
         $('kbCap').textContent = b.name + ' · ' + (many ? 'камни на выбор' : main.name);
         $('kbTitle').textContent = b.name + (many ? ' с камнями на выбор' : ' с камнем «' + main.name + '»');
         $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
         $('kbSizeName').textContent = b.sizeLabel + ': ' + z; $('kbSize').textContent = sizeAdd ? '+' + rub(sizeAdd) : rub(0);
         var dl = document.querySelector('.kb-lines'), totalRow = dl.querySelector('.kb-total');
         dl.querySelectorAll('.kb-stone-row').forEach(function (r) { r.remove(); });
-        st.lines.forEach(function (ln) {
+        sl.lines.forEach(function (ln) {
           var d = document.createElement('div'); d.className = 'kb-stone-row';
           var dt = document.createElement('dt'); dt.textContent = ln[0];
-          var dd = document.createElement('dd'); dd.textContent = '+' + rub(ln[1]);
+          var dd = document.createElement('dd'); dd.textContent = ln[1] ? '+' + rub(ln[1]) : 'в цене';
           d.appendChild(dt); d.appendChild(dd); dl.insertBefore(d, totalRow);
         });
         $('kbCountHint').textContent = c.note ? '3 камня — ' + c.note + ': боковые стоят половину цены камня.' : '';
@@ -307,10 +351,10 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
 
         var hash = '#b=' + b.id + '&z=' + encodeURIComponent(z) + '&n=' + c.n + '&s=' + slots.join(',');
         if (location.hash !== hash) history.replaceState(null, '', hash);
-        var positions = perSlot(b, c.n) ? '\nКамни слева направо: ' + order(c.n).map(function (i) { return byId(D.STONES, slots[i]).name; }).join(', ') : '';
+        var positions = perSlot(b, c.n) ? (isBeads(b) ? '\nБусины по часовой стрелке от верхней: ' : '\nКамни слева направо: ') + order(c.n, b).map(function (i) { return st(slots[i]).name; }).join(', ') : '';
         orderText = 'Здравствуйте! Хочу украшение из конструктора ViVA:\n' + b.name + '\n' +
           b.sizeLabel + ': ' + z + '\n' +
-          st.lines.map(function (l) { return l[0]; }).join('; ') + positions + '\n' +
+          sl.lines.map(function (l) { return l[0]; }).join('; ') + positions + '\n' +
           'Сумма по конструктору: ' + rub(total) + '\n' + location.href;
         $('kbStatus').textContent = '';
       }
@@ -323,7 +367,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         if (!p.b) return;
         var b = byId(D.BASES, p.b);
         form.querySelector('input[name=base][value="' + b.id + '"]').checked = true;
-        slots = (p.s || '').split(',').map(function (id) { return byId(D.STONES, id).id; });
+        slots = (p.s || '').split(',').map(function (id) { return byId(setOf(b), id).id; });
+        curSet = isBeads(b) ? 'bead' : 'cut';
         renderSizes(b, p.z);
         renderCounts(b, Number(p.n) || 1);
       }
@@ -380,7 +425,10 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-step legend { padding: 0; margin-bottom: 12px; font: 500 30px/1 var(--serif); display: flex; align-items: center; gap: 10px; }
   .kb-num { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--olive); color: var(--olive); font: 700 11px/24px var(--sans); text-align: center; flex: none; }
   .kb-cards { display: grid; gap: 8px; }
-  .kb-bases { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kb-bases { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kb-cards[hidden], .kb-step[hidden] { display: none; }
+  .kb-bead { filter: drop-shadow(0 3px 4px rgba(40, 50, 60, .28)); }
+  .kb-beads .kb-chip img { width: 54%; height: 54%; }
   .kb-stones { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .kb-card { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; background: var(--cream); border: 1px solid var(--line); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
   .kb-card:hover { border-color: var(--olive); }
@@ -429,10 +477,13 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
     .kb-grid { grid-template-columns: 1fr; gap: 28px; }
     .kb-stage-col { position: static; }
     .kb-stones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kb-beads { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 620px) {
     .kb-hero { padding: 40px 0 28px; }
     .kb-hero h1 { font-size: 54px; }
+    .kb-bases { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kb-beads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .kb-card { padding: 7px 7px 10px; }
     .kb-name { font-size: 17px; }
     .kb-meta { font-size: 11.5px; }
