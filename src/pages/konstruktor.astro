@@ -9,6 +9,9 @@ const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 const b0 = BASES[2];
 const s0 = STONES[1];
 const data = JSON.stringify({ BASES, STONES });
+const add0 = b0.sizeAdd[b0.sizes.indexOf(b0.sizeDefault)];
+const total0 = b0.price + add0 + s0.price;
+const addLabel = (n) => (n ? '+' + rub(n) : 'базовый');
 
 // Посадка по умолчанию (кольцо + камень) рассчитана заранее, чтобы превью было собрано и без JavaScript.
 const m = b0.mount;
@@ -43,7 +46,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             </defs>
             <ellipse id="kbBailRing" cx="0" cy="0" rx="0" ry="0" fill="none" stroke="url(#kbSilver)" stroke-width="8" />
           </svg>
-          <div class="kb-badge" aria-live="polite"><small>Итого</small><b id="kbStageTotal">{rub(b0.price + s0.price)}</b></div>
+          <div class="kb-badge" aria-live="polite"><small>Итого</small><b id="kbStageTotal">{rub(total0)}</b></div>
         </div>
         <p class="kb-cap" id="kbCap">{b0.name} · {s0.name}</p>
         <p class="kb-note">Превью условное: камень посажен на фотографию основы. Перед изготовлением мастер согласует с вами детали.</p>
@@ -61,14 +64,22 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                   <img src={`${img}thumb-${b.id}.jpg`} alt="" width="240" height="240" loading="lazy" />
                   <span class="kb-name">{b.name}</span>
                   <span class="kb-meta">{b.material}</span>
-                  <span class="kb-price">{rub(b.price)}</span>
+                  <span class="kb-price">от {rub(b.price)}</span>
                 </label>
               ))}
             </div>
           </fieldset>
 
           <fieldset class="kb-step">
-            <legend><span class="kb-num">2</span> Камень</legend>
+            <legend><span class="kb-num">2</span> <span id="kbSizeLabel">{b0.sizeLabel}</span></legend>
+            <div class="kb-sizes" id="kbSizes">
+              {b0.sizes.map((z, i) => (
+                <label class="kb-pill"><input type="radio" name="size" value={z} checked={z === b0.sizeDefault} /><span>{z}<small>{addLabel(b0.sizeAdd[i])}</small></span></label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset class="kb-step">
+            <legend><span class="kb-num">3</span> Камень</legend>
             <div class="kb-cards kb-stones">
               {STONES.map((s) => (
                 <label class="kb-card">
@@ -82,14 +93,6 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             </div>
           </fieldset>
 
-          <fieldset class="kb-step">
-            <legend><span class="kb-num">3</span> <span id="kbSizeLabel">{b0.sizeLabel}</span></legend>
-            <div class="kb-sizes" id="kbSizes">
-              {b0.sizes.map((z) => (
-                <label class="kb-pill"><input type="radio" name="size" value={z} checked={z === b0.sizeDefault} /><span>{z}</span></label>
-              ))}
-            </div>
-          </fieldset>
         </form>
 
         <div class="kb-summary" id="kbSummary">
@@ -97,9 +100,9 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           <p class="kb-sum-title" id="kbTitle">{b0.name} с камнем «{s0.name}»</p>
           <dl class="kb-lines">
             <div><dt id="kbBaseName">{b0.name}</dt><dd id="kbBasePrice">{rub(b0.price)}</dd></div>
+            <div><dt id="kbSizeName">{b0.sizeLabel}: {b0.sizeDefault}</dt><dd id="kbSize">{add0 ? '+' + rub(add0) : '0\u00A0₽'}</dd></div>
             <div><dt id="kbStoneName">{s0.name}, {s0.cut.toLowerCase()}</dt><dd id="kbStonePrice">+{rub(s0.price)}</dd></div>
-            <div><dt id="kbSizeName">{b0.sizeLabel}</dt><dd id="kbSize">{b0.sizeDefault}</dd></div>
-            <div class="kb-total"><dt>Итого</dt><dd id="kbTotal">{rub(b0.price + s0.price)}</dd></div>
+            <div class="kb-total"><dt>Итого</dt><dd id="kbTotal">{rub(total0)}</dd></div>
           </dl>
           <div class="kb-actions">
             <a class="button" id="kbOrder" href={master} target="_blank" rel="noopener">Обсудить с мастером</a>
@@ -115,7 +118,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   <div class="kb-bar">
     <div class="kb-bar-in">
       <a class="kb-mini" id="kbMini" href="#kbStage" data-scroll="kbStage" aria-label="Показать превью"></a>
-      <span class="kb-bar-total"><small>Итого</small> <b id="kbBarTotal">{rub(b0.price + s0.price)}</b></span>
+      <span class="kb-bar-total"><small>Итого</small> <b id="kbBarTotal">{rub(total0)}</b></span>
       <a class="button" href="#kbSummary" data-scroll="kbSummary">К заказу</a>
     </div>
   </div>
@@ -141,10 +144,11 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         var box = $('kbSizes');
         var sel = b.sizes.indexOf(keep) >= 0 ? keep : b.sizeDefault;
         box.innerHTML = '';
-        b.sizes.forEach(function (z) {
+        b.sizes.forEach(function (z, k) {
           var l = document.createElement('label'); l.className = 'kb-pill';
           var i = document.createElement('input'); i.type = 'radio'; i.name = 'size'; i.value = z; i.checked = z === sel;
           var s = document.createElement('span'); s.textContent = z;
+          var m = document.createElement('small'); m.textContent = b.sizeAdd[k] ? '+' + rub(b.sizeAdd[k]) : 'базовый'; s.appendChild(m);
           l.appendChild(i); l.appendChild(s); box.appendChild(l);
         });
         $('kbSizeLabel').textContent = b.sizeLabel;
@@ -197,12 +201,13 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         };
         if (swap) { stage.classList.add('kb-fading'); setTimeout(apply, 160); } else apply();
 
-        var total = b.price + s.price;
+        var sizeAdd = b.sizeAdd[Math.max(0, b.sizes.indexOf(st.z))];
+        var total = b.price + sizeAdd + s.price;
         $('kbCap').textContent = b.name + ' · ' + s.name;
         $('kbTitle').textContent = b.name + ' с камнем «' + s.name + '»';
         $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
         $('kbStoneName').textContent = s.name + ', ' + s.cut.toLowerCase(); $('kbStonePrice').textContent = '+' + rub(s.price);
-        $('kbSizeName').textContent = b.sizeLabel; $('kbSize').textContent = st.z;
+        $('kbSizeName').textContent = b.sizeLabel + ': ' + st.z; $('kbSize').textContent = sizeAdd ? '+' + rub(sizeAdd) : rub(0);
         $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total); $('kbStageTotal').textContent = rub(total);
 
         var hash = '#b=' + b.id + '&s=' + s.id + '&z=' + encodeURIComponent(st.z);
@@ -288,7 +293,9 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-price { margin-top: auto; padding-top: 6px; font-size: 13px; font-weight: 600; }
   .kb-sizes { display: flex; flex-wrap: wrap; gap: 8px; }
   .kb-pill { position: relative; cursor: pointer; }
-  .kb-pill span { display: block; min-width: 56px; padding: 9px 14px; text-align: center; border: 1px solid var(--line); background: var(--cream); font-size: 14px; }
+  .kb-pill span { display: block; min-width: 64px; padding: 8px 12px; line-height: 1.25; text-align: center; border: 1px solid var(--line); background: var(--cream); font-size: 14px; }
+  .kb-pill small { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .kb-pill input:checked + span small { color: #f0eddf; }
   .kb-pill:hover span { border-color: var(--olive); }
   .kb-pill input:checked + span { background: var(--olive); border-color: var(--olive); color: #fff; }
   .kb-summary { background: var(--cream); border: 1px solid var(--line); padding: 26px; scroll-margin-top: 96px; }
