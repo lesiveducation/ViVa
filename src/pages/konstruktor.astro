@@ -11,6 +11,7 @@ const s0 = STONES[1];
 const data = JSON.stringify({ BASES, STONES });
 const add0 = b0.sizeAdd[b0.sizes.indexOf(b0.sizeDefault)];
 const total0 = b0.price + add0 + s0.price;
+const stonesWord = (n) => (n === 1 ? 'камень' : n < 5 ? 'камня' : 'камней');
 const addLabel = (n) => (n ? '+' + rub(n) : 'базовый');
 
 // Посадка по умолчанию (кольцо + камень) рассчитана заранее, чтобы превью было собрано и без JavaScript.
@@ -24,7 +25,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
     <div class="container">
       <div class="breadcrumbs">Главная / Конструктор</div>
       <h1>Соберите своё украшение</h1>
-      <p>Выберите основу, камень и размер. Превью и цена меняются сразу, а готовый дизайн можно отправить мастеру.</p>
+      <p>Выберите основу, размер, количество камней и сами камни. Превью и цена меняются сразу, а готовый дизайн можно отправить мастеру.</p>
     </div>
   </section>
 
@@ -33,7 +34,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       <div class="kb-stage-col">
         <div class="kb-stage" id="kbStage">
           <img class="kb-layer kb-base" id="kbBase" src={`${img}base-${b0.id}.jpg`} alt="" width="1000" height="1000" />
-          <img class="kb-layer kb-stone" id="kbStone" src={`${img}stone-${s0.id}.png`} alt="" style={stoneStyle} />
+          <div class="kb-layer kb-stones-layer" id="kbStones"><img class="kb-stone" src={`${img}stone-${s0.id}.png`} alt="" style={stoneStyle} /></div>
           <img class="kb-layer kb-prongs" id="kbProngs" src={`${img}ring-prongs.png`} alt="" style={prongStyle} />
           <svg class="kb-layer kb-bail" id="kbBail" style="display:none" viewBox="0 0 1000 1000" aria-hidden="true">
             <defs>
@@ -44,7 +45,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                 <stop offset="1" stop-color="#8d8d95" />
               </linearGradient>
             </defs>
-            <ellipse id="kbBailRing" cx="0" cy="0" rx="0" ry="0" fill="none" stroke="url(#kbSilver)" stroke-width="8" />
+            <g id="kbBails"></g>
           </svg>
           <div class="kb-badge" aria-live="polite"><small>Итого</small><b id="kbStageTotal">{rub(total0)}</b></div>
         </div>
@@ -79,7 +80,22 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             </div>
           </fieldset>
           <fieldset class="kb-step">
-            <legend><span class="kb-num">3</span> Камень</legend>
+            <legend><span class="kb-num">3</span> Количество камней</legend>
+            <div class="kb-sizes" id="kbCounts">
+              {b0.counts.map((c) => (
+                <label class="kb-pill"><input type="radio" name="count" value={c.n} checked={c.n === 1} /><span>{c.n} {stonesWord(c.n)}<small>{c.mult === 1 ? 'в цене' : '+' + rub(s0.price * (c.mult - 1))}</small></span></label>
+              ))}
+            </div>
+            <p class="kb-hint" id="kbCountHint"></p>
+          </fieldset>
+
+          <fieldset class="kb-step">
+            <legend><span class="kb-num">4</span> <span id="kbStoneLegend">Камень</span></legend>
+            <div class="kb-slots" id="kbSlots" hidden>
+              <p class="kb-hint">Выберите позицию на изделии, затем камень для неё.</p>
+              <div class="kb-slot-row" id="kbSlotRow" role="group" aria-label="Позиции камней"></div>
+              <button class="kb-link" type="button" id="kbAll">Сделать все камни как выбранный</button>
+            </div>
             <div class="kb-cards kb-stones">
               {STONES.map((s) => (
                 <label class="kb-card">
@@ -101,7 +117,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           <dl class="kb-lines">
             <div><dt id="kbBaseName">{b0.name}</dt><dd id="kbBasePrice">{rub(b0.price)}</dd></div>
             <div><dt id="kbSizeName">{b0.sizeLabel}: {b0.sizeDefault}</dt><dd id="kbSize">{add0 ? '+' + rub(add0) : '0\u00A0₽'}</dd></div>
-            <div><dt id="kbStoneName">{s0.name}, {s0.cut.toLowerCase()}</dt><dd id="kbStonePrice">+{rub(s0.price)}</dd></div>
+            <div class="kb-stone-row"><dt>{s0.name}, {s0.cut.toLowerCase()}</dt><dd>+{rub(s0.price)}</dd></div>
             <div class="kb-total"><dt>Итого</dt><dd id="kbTotal">{rub(total0)}</dd></div>
           </dl>
           <div class="kb-actions">
@@ -129,49 +145,98 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       var D = JSON.parse(document.getElementById('kbData').textContent);
       var $ = function (id) { return document.getElementById(id); };
       var form = $('kbForm'), stage = $('kbStage');
-      var baseImg = $('kbBase'), stoneImg = $('kbStone'), prongs = $('kbProngs'), bail = $('kbBail'), ring = $('kbBailRing');
+      var baseImg = $('kbBase'), stonesBox = $('kbStones'), prongs = $('kbProngs'), bail = $('kbBail'), bails = $('kbBails');
       var imgDir = baseImg.getAttribute('src').replace(/base-[a-z]+\.jpg$/, '');
       var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; };
       var byId = function (list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; };
       var pct = function (v) { return (v / 10) + '%'; };
-      var orderText = '';
+      var word = function (n) { return n === 1 ? 'камень' : n < 5 ? 'камня' : 'камней'; };
+      var orderText = '', shownBase = '';
 
-      // предзагрузка слоёв, чтобы смена была мгновенной
+      // slots[i] — камень на позиции i (0 — центральная); active — позиция, которую сейчас меняют
+      var slots = [form.querySelector('input[name=stone]:checked').value], active = 0;
+
       D.BASES.forEach(function (b) { new Image().src = imgDir + 'base-' + b.id + '.jpg'; });
       D.STONES.forEach(function (s) { new Image().src = imgDir + 'stone-' + s.id + '.png'; });
 
-      function renderSizes(b, keep) {
-        var box = $('kbSizes');
-        var sel = b.sizes.indexOf(keep) >= 0 ? keep : b.sizeDefault;
-        box.innerHTML = '';
-        b.sizes.forEach(function (z, k) {
+      function pills(boxId, name, items, sel) {
+        var box = $(boxId); box.innerHTML = '';
+        items.forEach(function (it) {
           var l = document.createElement('label'); l.className = 'kb-pill';
-          var i = document.createElement('input'); i.type = 'radio'; i.name = 'size'; i.value = z; i.checked = z === sel;
-          var s = document.createElement('span'); s.textContent = z;
-          var m = document.createElement('small'); m.textContent = b.sizeAdd[k] ? '+' + rub(b.sizeAdd[k]) : 'базовый'; s.appendChild(m);
+          var i = document.createElement('input'); i.type = 'radio'; i.name = name; i.value = it.value; i.checked = String(it.value) === String(sel);
+          var s = document.createElement('span'); s.textContent = it.label;
+          var m = document.createElement('small'); m.textContent = it.note; s.appendChild(m);
           l.appendChild(i); l.appendChild(s); box.appendChild(l);
         });
+      }
+      function renderSizes(b, keep) {
+        var sel = b.sizes.indexOf(keep) >= 0 ? keep : b.sizeDefault;
+        pills('kbSizes', 'size', b.sizes.map(function (z, k) { return { value: z, label: z, note: b.sizeAdd[k] ? '+' + rub(b.sizeAdd[k]) : 'базовый' }; }), sel);
         $('kbSizeLabel').textContent = b.sizeLabel;
       }
+      function countOf(b, n) { for (var i = 0; i < b.counts.length; i++) if (b.counts[i].n === n) return b.counts[i]; return b.counts[0]; }
+      function renderCounts(b, keep) {
+        var s = byId(D.STONES, slots[0]);
+        pills('kbCounts', 'count', b.counts.map(function (c) { return { value: c.n, label: c.n + ' ' + word(c.n), note: c.mult === 1 ? 'в цене' : b.mount.type === 'ring' ? '+' + rub(s.price * (c.mult - 1)) : 'цена камня × ' + c.n }; }), countOf(b, keep).n);
+      }
+      function perSlot(b, n) { return b.mount.type === 'pendant' && n > 1; }
+      // порядок позиций слева направо для подписи кнопок
+      function order(n) { return n === 5 ? [3, 1, 0, 2, 4] : n === 3 ? [1, 0, 2] : [0]; }
 
-      function place(b, s) {
-        var m = b.mount, w, h, left, top;
+      function renderSlots(b, n) {
+        var on = perSlot(b, n);
+        $('kbSlots').hidden = !on;
+        $('kbStoneLegend').textContent = on ? 'Камни' : 'Камень';
+        if (!on) return;
+        var row = $('kbSlotRow'); row.innerHTML = '';
+        order(n).forEach(function (i, k) {
+          var s = byId(D.STONES, slots[i]);
+          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kb-slot' + (i === active ? ' is-active' : '');
+          btn.setAttribute('aria-pressed', String(i === active));
+          btn.setAttribute('aria-label', 'Позиция ' + (k + 1) + ': ' + s.name);
+          var im = document.createElement('img'); im.src = imgDir + 'chip-' + s.id + '.png'; im.alt = '';
+          var sp = document.createElement('span'); sp.textContent = k + 1;
+          btn.appendChild(im); btn.appendChild(sp);
+          btn.addEventListener('click', function () { active = i; syncStoneRadios(); renderSlots(b, n); });
+          row.appendChild(btn);
+        });
+      }
+      function syncStoneRadios() {
+        var r = form.querySelector('input[name=stone][value="' + slots[active] + '"]'); if (r) r.checked = true;
+      }
+
+      // камни: [x, y, ширина, id] в пикселях холста 1000×1000; центральный рисуется последним, поверх боковых
+      function place(b, n) {
+        var m = b.mount, items = [], rings = '';
         if (m.type === 'pendant') {
-          var bs = 46 * m.k;
-          w = s.pendantW * m.k; h = w * s.ratio;
-          left = m.x - w / 2; top = m.y + bs * 0.75;
-          ring.setAttribute('cx', m.x); ring.setAttribute('cy', m.y - bs * 0.1 + bs / 2);
-          ring.setAttribute('rx', bs * 0.275); ring.setAttribute('ry', bs / 2);
-          ring.setAttribute('stroke-width', Math.max(5, bs * 0.17));
+          var sc = n === 1 ? 1 : n === 3 ? 0.62 : 0.52;
+          var bs = 46 * m.k * (n === 1 ? 1 : 0.85);
+          for (var i = n - 1; i >= 0; i--) {
+            var s = byId(D.STONES, slots[i]);
+            var x = m.points[i][0], y = m.points[i][1], w = s.pendantW * m.k * sc;
+            items.push([x - w / 2, y + bs * 0.75, w, s.id]);
+            rings += '<ellipse cx="' + x + '" cy="' + (y - bs * 0.1 + bs / 2) + '" rx="' + bs * 0.275 + '" ry="' + bs / 2 + '" fill="none" stroke="url(#kbSilver)" stroke-width="' + Math.max(5, bs * 0.17) + '"/>';
+          }
           bail.style.display = ''; prongs.hidden = true;
         } else {
-          w = 2 * m.r * s.ringW; h = w * s.ratio;
-          left = m.cx - w / 2;
-          top = s.centered ? m.cy - h / 2 : m.cy + m.r - h;
+          var s0 = byId(D.STONES, slots[0]);
+          if (n === 3) [-1, 1].forEach(function (sg) {
+            var w = 2 * m.r * m.side.f, h = w * s0.ratio;
+            items.push([m.cx + sg * m.side.dx * m.r - w / 2, m.cy + m.side.dy * m.r - h / 2, w, s0.id]);
+          });
+          var w = 2 * m.r * s0.ringW, h = w * s0.ratio;
+          items.push([m.cx - w / 2, s0.centered ? m.cy - h / 2 : m.cy + m.r - h, w, s0.id]);
           prongs.style.left = pct(m.prongs.x); prongs.style.top = pct(m.prongs.y); prongs.style.width = pct(m.prongs.w);
           bail.style.display = 'none'; prongs.hidden = false;
         }
-        stoneImg.style.left = pct(left); stoneImg.style.top = pct(top); stoneImg.style.width = pct(w);
+        bails.innerHTML = rings;
+        stonesBox.innerHTML = '';
+        items.forEach(function (it) {
+          var im = document.createElement('img'); im.className = 'kb-stone'; im.alt = '';
+          im.src = imgDir + 'stone-' + it[3] + '.png';
+          im.style.left = pct(it[0]); im.style.top = pct(it[1]); im.style.width = pct(it[2]);
+          stonesBox.appendChild(im);
+        });
       }
 
       function syncMini() {
@@ -182,39 +247,70 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbMini').innerHTML = ''; $('kbMini').appendChild(c);
       }
 
-      function state() {
-        var f = new FormData(form);
-        return { b: f.get('base'), s: f.get('stone'), z: f.get('size') };
+      function fitSlots(n) {
+        while (slots.length < n) slots.push(slots[0]);
+        slots.length = n;
+        if (active >= n) active = 0;
       }
 
-      function update(fromBase) {
-        var st = state();
-        var b = byId(D.BASES, st.b), s = byId(D.STONES, st.s);
-        if (fromBase) { renderSizes(b, st.z); st = state(); }
-        var swap = baseImg.getAttribute('src').indexOf(b.id) < 0 || stoneImg.getAttribute('src').indexOf(s.id) < 0;
-        var apply = function () {
-          baseImg.src = imgDir + 'base-' + b.id + '.jpg';
-          stoneImg.src = imgDir + 'stone-' + s.id + '.png';
-          place(b, s);
-          stage.classList.remove('kb-fading');
-          syncMini();
-        };
-        if (swap) { stage.classList.add('kb-fading'); setTimeout(apply, 160); } else apply();
+      // строки камней в итоге: одинаковые камни сгруппированы
+      function stoneLines(b, c) {
+        var lines = [], total = 0;
+        if (b.mount.type === 'ring') {
+          var s = byId(D.STONES, slots[0]); total = s.price * c.mult;
+          lines.push([s.name + ', ' + s.cut.toLowerCase() + (c.n > 1 ? ' × ' + c.n + ' (' + c.note + ')' : ''), total]);
+        } else {
+          var groups = {}, ids = [];
+          slots.forEach(function (id) { if (!groups[id]) { groups[id] = 0; ids.push(id); } groups[id]++; });
+          ids.forEach(function (id) { var s = byId(D.STONES, id); var sum = s.price * groups[id]; total += sum; lines.push([s.name + ', ' + s.cut.toLowerCase() + (groups[id] > 1 || c.n > 1 ? ' × ' + groups[id] : ''), sum]); });
+        }
+        return { lines: lines, total: total };
+      }
 
-        var sizeAdd = b.sizeAdd[Math.max(0, b.sizes.indexOf(st.z))];
-        var total = b.price + sizeAdd + s.price;
-        $('kbCap').textContent = b.name + ' · ' + s.name;
-        $('kbTitle').textContent = b.name + ' с камнем «' + s.name + '»';
+      function update(changed) {
+        var f = new FormData(form);
+        var b = byId(D.BASES, f.get('base'));
+        if (changed === 'base') renderSizes(b, f.get('size'));
+        var c = countOf(b, Number(new FormData(form).get('count')) || 1);
+        if (changed === 'base' || changed === 'init') renderCounts(b, c.n);
+        c = countOf(b, Number(new FormData(form).get('count')) || 1);
+        if (!perSlot(b, c.n)) { slots = slots.map(function () { return slots[active] || slots[0]; }); active = 0; }
+        fitSlots(c.n);
+        renderSlots(b, c.n);
+        syncStoneRadios();
+        if (changed === 'stone' || changed === 'all') renderCounts(b, c.n);
+        var z = new FormData(form).get('size');
+
+        var apply = function () { baseImg.src = imgDir + 'base-' + b.id + '.jpg'; place(b, c.n); stage.classList.remove('kb-fading'); syncMini(); };
+        if (shownBase && shownBase !== b.id) { stage.classList.add('kb-fading'); setTimeout(apply, 160); } else apply();
+        shownBase = b.id;
+
+        var sizeAdd = b.sizeAdd[Math.max(0, b.sizes.indexOf(z))];
+        var st = stoneLines(b, c);
+        var total = b.price + sizeAdd + st.total;
+        var main = byId(D.STONES, slots[0]);
+        var many = st.lines.length > 1;
+        $('kbCap').textContent = b.name + ' · ' + (many ? 'камни на выбор' : main.name);
+        $('kbTitle').textContent = b.name + (many ? ' с камнями на выбор' : ' с камнем «' + main.name + '»');
         $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
-        $('kbStoneName').textContent = s.name + ', ' + s.cut.toLowerCase(); $('kbStonePrice').textContent = '+' + rub(s.price);
-        $('kbSizeName').textContent = b.sizeLabel + ': ' + st.z; $('kbSize').textContent = sizeAdd ? '+' + rub(sizeAdd) : rub(0);
+        $('kbSizeName').textContent = b.sizeLabel + ': ' + z; $('kbSize').textContent = sizeAdd ? '+' + rub(sizeAdd) : rub(0);
+        var dl = document.querySelector('.kb-lines'), totalRow = dl.querySelector('.kb-total');
+        dl.querySelectorAll('.kb-stone-row').forEach(function (r) { r.remove(); });
+        st.lines.forEach(function (ln) {
+          var d = document.createElement('div'); d.className = 'kb-stone-row';
+          var dt = document.createElement('dt'); dt.textContent = ln[0];
+          var dd = document.createElement('dd'); dd.textContent = '+' + rub(ln[1]);
+          d.appendChild(dt); d.appendChild(dd); dl.insertBefore(d, totalRow);
+        });
+        $('kbCountHint').textContent = c.note ? '3 камня — ' + c.note + ': боковые стоят половину цены камня.' : '';
         $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total); $('kbStageTotal').textContent = rub(total);
 
-        var hash = '#b=' + b.id + '&s=' + s.id + '&z=' + encodeURIComponent(st.z);
+        var hash = '#b=' + b.id + '&z=' + encodeURIComponent(z) + '&n=' + c.n + '&s=' + slots.join(',');
         if (location.hash !== hash) history.replaceState(null, '', hash);
-        orderText = 'Здравствуйте! Хочу украшение из конструктора ViVA:\n' +
-          b.name + ' + ' + s.name + ' (' + s.cut.toLowerCase() + ')\n' +
-          b.sizeLabel + ': ' + st.z + '\n' +
+        var positions = perSlot(b, c.n) ? '\nКамни слева направо: ' + order(c.n).map(function (i) { return byId(D.STONES, slots[i]).name; }).join(', ') : '';
+        orderText = 'Здравствуйте! Хочу украшение из конструктора ViVA:\n' + b.name + '\n' +
+          b.sizeLabel + ': ' + z + '\n' +
+          st.lines.map(function (l) { return l[0]; }).join('; ') + positions + '\n' +
           'Сумма по конструктору: ' + rub(total) + '\n' + location.href;
         $('kbStatus').textContent = '';
       }
@@ -225,10 +321,11 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
         });
         if (!p.b) return;
-        var b = byId(D.BASES, p.b), s = byId(D.STONES, p.s);
+        var b = byId(D.BASES, p.b);
         form.querySelector('input[name=base][value="' + b.id + '"]').checked = true;
-        form.querySelector('input[name=stone][value="' + s.id + '"]').checked = true;
+        slots = (p.s || '').split(',').map(function (id) { return byId(D.STONES, id).id; });
         renderSizes(b, p.z);
+        renderCounts(b, Number(p.n) || 1);
       }
 
       function copy(text, done) {
@@ -239,7 +336,11 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       document.querySelectorAll('[data-scroll]').forEach(function (a) {
         a.addEventListener('click', function (e) { e.preventDefault(); $(a.getAttribute('data-scroll')).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       });
-      form.addEventListener('change', function (e) { update(e.target.name === 'base'); });
+      form.addEventListener('change', function (e) {
+        if (e.target.name === 'stone') slots[active] = e.target.value;
+        update(e.target.name);
+      });
+      $('kbAll').addEventListener('click', function () { slots = slots.map(function () { return slots[active]; }); update('all'); });
       $('kbOrder').addEventListener('click', function () {
         copy(orderText, function () { $('kbStatus').textContent = 'Описание дизайна скопировано — вставьте его в чат с мастером.'; });
       });
@@ -249,7 +350,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       });
 
       fromHash();
-      update(false);
+      update(location.hash ? 'hash' : 'init');
     })();
   </script>
 </Layout>
@@ -265,7 +366,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-layer[hidden] { display: none; }
   .kb-base, .kb-bail { inset: 0; width: 100%; height: 100%; }
   .kb-bail { pointer-events: none; }
-  .kb-stone { height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
+  .kb-stones-layer { inset: 0; width: 100%; height: 100%; }
+  .kb-stone { position: absolute; height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
   .kb-stage.kb-fading .kb-layer { opacity: 0; }
   .kb-badge { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 14px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
   .kb-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
@@ -292,6 +394,16 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-meta { font-size: 12px; line-height: 1.35; color: var(--muted); }
   .kb-price { margin-top: auto; padding-top: 6px; font-size: 13px; font-weight: 600; }
   .kb-sizes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kb-hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+  .kb-slots { margin: 0 0 14px; }
+  .kb-slots .kb-hint { margin: 0 0 10px; }
+  .kb-slot-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kb-slot { position: relative; width: 60px; height: 60px; display: grid; place-items: center; padding: 0; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .kb-slot img { width: 38px; height: 38px; object-fit: contain; }
+  .kb-slot span { position: absolute; left: 4px; top: 2px; font: 700 10px var(--sans); color: var(--muted); }
+  .kb-slot.is-active { border-color: var(--olive); box-shadow: inset 0 0 0 2px var(--olive); }
+  .kb-link { margin-top: 10px; padding: 0; border: 0; background: none; color: var(--accent-dark); font: 600 13px var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .kb-hint:empty { display: none; }
   .kb-pill { position: relative; cursor: pointer; }
   .kb-pill span { display: block; min-width: 64px; padding: 8px 12px; line-height: 1.25; text-align: center; border: 1px solid var(--line); background: var(--cream); font-size: 14px; }
   .kb-pill small { display: block; margin-top: 2px; font-size: 11px; color: var(--muted); white-space: nowrap; }
