@@ -105,6 +105,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                 <button class="kb-link" type="button" id="kbAll">Сделать все камни как выбранный</button>
                 <button class="kb-link" type="button" id="kbReset" hidden>Вернуть как в шаблоне</button>
               </div>
+              <p class="kb-hint kb-sel-info" id="kbSelInfo" aria-live="polite"></p>
             </div>
             <div class="kb-cards kb-stones" id="kbCutSet">
               {STONES.map((s) => (
@@ -201,8 +202,9 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       var pends = [];
       var pendOf = function (id) { return byId(D.PENDANTS, id); };
 
-      // slots[i] — камень на позиции i (0 — центральная); active — позиция, которую сейчас меняют
-      var slots = [form.querySelector('input[name=stone]:checked').value], active = 0;
+      // slots[i] — камень на позиции i (0 — центральная); sel — выделенные позиции, выбранный камень ставится во все;
+      // active — последняя выделенная (по ней работает «Сделать все как выбранный»)
+      var slots = [form.querySelector('input[name=stone]:checked').value], active = 0, sel = [0];
 
       D.BASES.forEach(function (b) { new Image().src = imgDir + 'base-' + b.id + '.jpg'; });
       D.STONES.forEach(function (s) { new Image().src = imgDir + 'stone-' + s.id + '.png'; });
@@ -239,29 +241,50 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbStoneNum').textContent = b.counts.length < 2 ? 3 : 4;
         $('kbCutSet').hidden = isBeads(b); $('kbBeadSet').hidden = !isBeads(b);
         if (!on) return;
-        $('kbSlotHint').textContent = isBeads(b) ? 'Каждую из 20 бусин можно заменить. Нажмите на бусину на фото или на её номер ниже, затем выберите камень. Номера идут по часовой стрелке от верхней.' : 'Нажмите на камень на фото или на его номер ниже, затем выберите камень для этой позиции.';
+        $('kbSlotHint').textContent = isBeads(b) ? 'Каждую из 20 бусин можно заменить. Нажмите на бусину на фото или на её номер ниже, затем выберите камень. Чтобы выделить несколько, проведите пальцем или мышью по бусинам на фото, или нажимайте номера с Shift. Номера идут по часовой стрелке от верхней.' : 'Нажмите на камень на фото или на его номер ниже, затем выберите камень для этой позиции. Проведите по нескольким камням на фото, чтобы заменить их сразу.';
         $('kbAll').textContent = isBeads(b) ? 'Сделать все бусины как выбранная' : 'Сделать все камни как выбранный';
         $('kbReset').hidden = !isBeads(b);
         var row = $('kbSlotRow'); row.innerHTML = '';
         row.classList.toggle('is-many', n > 5);
         order(n, b).forEach(function (i, k) {
           var s = st(slots[i]);
-          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kb-slot' + (i === active ? ' is-active' : '');
-          btn.setAttribute('aria-pressed', String(i === active));
+          var on = sel.indexOf(i) >= 0;
+          var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kb-slot' + (on ? ' is-active' : '');
+          btn.setAttribute('aria-pressed', String(on));
           btn.setAttribute('aria-label', 'Позиция ' + (k + 1) + ': ' + s.name);
           var im = document.createElement('img'); im.src = chip(s.id); im.alt = '';
           var sp = document.createElement('span'); sp.textContent = k + 1;
           btn.appendChild(im); btn.appendChild(sp);
-          btn.addEventListener('click', function () { selectSlot(i); });
+          btn.addEventListener('click', function (e) { selectSlot(i, e.shiftKey || e.ctrlKey || e.metaKey); });
           row.appendChild(btn);
         });
+        $('kbSelInfo').textContent = sel.length > 1 ? 'Выделено позиций: ' + sel.length + '. Выбранный камень встанет во все.' : '';
       }
       // выбор позиции: кнопкой под превью или нажатием на камень на фотографии
       var cur = null;
-      function selectSlot(i) { active = i; syncStoneRadios(); renderSlots(cur.b, cur.n); markHot(); }
+      // add — добавить к выделению (Shift/Ctrl или протягивание по бусинам), иначе выделить одну позицию
+      function selectSlot(i, add) {
+        if (!add) sel = [i];
+        else if (sel.indexOf(i) < 0) sel.push(i);
+        else if (sel.length > 1 && !dragging) sel.splice(sel.indexOf(i), 1);
+        active = sel.indexOf(i) >= 0 ? i : sel[sel.length - 1];
+        syncStoneRadios(); renderSlots(cur.b, cur.n); markHot();
+      }
+      // протягивание: зажать бусину на фото и провести по соседним — все они выделяются
+      var dragging = false;
+      function spotAt(x, y) {
+        var el = document.elementFromPoint(x, y), h = el && el.closest ? el.closest('.kb-spot') : null;
+        return h && $('kbHot').contains(h) ? Number(h.getAttribute('data-i')) : -1;
+      }
+      window.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var i = spotAt(e.clientX, e.clientY);
+        if (i >= 0 && sel.indexOf(i) < 0) selectSlot(i, true);
+      });
+      ['pointerup', 'pointercancel'].forEach(function (t) { window.addEventListener(t, function () { dragging = false; }); });
       function markHot() {
         $('kbHot').querySelectorAll('.kb-spot').forEach(function (h) {
-          var on = Number(h.getAttribute('data-i')) === active;
+          var on = sel.indexOf(Number(h.getAttribute('data-i'))) >= 0;
           h.classList.toggle('is-active', on); h.setAttribute('aria-pressed', String(on));
         });
       }
@@ -274,13 +297,23 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           var h = document.createElement('button'); h.type = 'button'; h.className = 'kb-spot'; h.setAttribute('data-i', i);
           h.setAttribute('aria-label', 'Выбрать позицию ' + (k + 1) + ': ' + st(slots[i]).name);
           h.style.left = pct(sp[0]); h.style.top = pct(sp[1]); h.style.width = pct(2 * sp[2]); h.style.height = pct(2 * sp[2]);
-          h.addEventListener('click', function () { selectSlot(i); });
+          h.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            if (h.hasPointerCapture && h.hasPointerCapture(e.pointerId)) h.releasePointerCapture(e.pointerId);
+            var add = e.shiftKey || e.ctrlKey || e.metaKey;
+            selectSlot(i, add); dragging = true;
+          });
+          // клавиатура (Enter/пробел) даёт click без pointerdown
+          h.addEventListener('click', function (e) { if (e.detail === 0) selectSlot(i, e.shiftKey || e.ctrlKey || e.metaKey); });
           box.appendChild(h);
         });
         markHot();
       }
       function syncStoneRadios() {
-        var r = form.querySelector('input[name=stone][value="' + slots[active] + '"]'); if (r) r.checked = true;
+        var same = sel.every(function (i) { return slots[i] === slots[sel[0]]; });
+        var r = form.querySelector('input[name=stone][value="' + slots[sel[0]] + '"]');
+        if (same && r) r.checked = true;
+        else form.querySelectorAll('input[name=stone]').forEach(function (x) { x.checked = false; });
       }
 
       // камни: [x, y, ширина, id] в пикселях холста 1000×1000; центральный рисуется последним, поверх боковых
@@ -347,6 +380,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         while (slots.length < n) slots.push(isBeads(b) ? b.mount.def[slots.length] : slots[0]);
         slots.length = n;
         if (active >= n) active = 0;
+        sel = sel.filter(function (i) { return i < n; }); if (!sel.length) sel = [active];
       }
 
       // строки камней в итоге: одинаковые камни сгруппированы
@@ -376,16 +410,16 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         if (changed === 'base') renderSizes(b, f.get('size'));
         var set = isBeads(b) ? 'bead' : 'cut';
         if (curSet && set !== curSet) {
-          memo[curSet] = { slots: slots.slice(), active: active };
-          var saved = memo[set] || { slots: set === 'bead' ? b.mount.def.slice() : [D.STONES[1].id], active: 0 };
-          slots = saved.slots.slice(); active = saved.active;
+          memo[curSet] = { slots: slots.slice(), active: active, sel: sel.slice() };
+          var saved = memo[set] || { slots: set === 'bead' ? b.mount.def.slice() : [D.STONES[1].id], active: 0, sel: [0] };
+          slots = saved.slots.slice(); active = saved.active; sel = saved.sel.slice();
         }
         curSet = set;
         if (set === 'bead' && !beadsLoaded) { beadsLoaded = true; D.BEADS.forEach(function (s) { new Image().src = chip(s.id); }); }
         var c = countOf(b, Number(new FormData(form).get('count')) || 1);
         if (changed === 'base' || changed === 'init') renderCounts(b, c.n);
         c = countOf(b, Number(new FormData(form).get('count')) || 1);
-        if (!perSlot(b, c.n)) { slots = slots.map(function () { return slots[active] || slots[0]; }); active = 0; }
+        if (!perSlot(b, c.n)) { slots = slots.map(function () { return slots[active] || slots[0]; }); active = 0; sel = [0]; }
         fitSlots(c.n, b);
         renderSlots(b, c.n);
         syncStoneRadios();
@@ -473,7 +507,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         });
       }
       form.addEventListener('change', function (e) {
-        if (e.target.name === 'stone') slots[active] = e.target.value;
+        if (e.target.name === 'stone') sel.forEach(function (i) { slots[i] = e.target.value; });
         if (e.target.name === 'pendant') {
           var id = e.target.value, at = pends.indexOf(id);
           if (e.target.checked && at < 0 && pends.length < D.PENDANT_MAX) pends.push(id);
@@ -513,6 +547,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-stone { position: absolute; height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
   .kb-stage.kb-fading .kb-layer { opacity: 0; }
   .kb-hot { inset: 0; z-index: 1; pointer-events: none; }
+  .kb-spot { touch-action: none; -webkit-user-select: none; user-select: none; }
+  .kb-slots .kb-sel-info { margin: 8px 0 0; color: var(--accent-dark); font-weight: 600; }
   .kb-hot-quiet .kb-spot:not(.is-active):not(:hover) { border-color: transparent; box-shadow: none; }
   .kb-pend { filter: drop-shadow(0 3px 4px rgba(40, 50, 60, .3)); }
   .kb-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
@@ -527,7 +563,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-spot:hover { border-style: solid; border-color: #fff; }
   .kb-spot.is-active { border: 3px solid #fff; box-shadow: 0 0 0 3px var(--olive), 0 4px 14px rgba(64, 61, 47, .35); }
   .kb-spot:focus-visible { outline: 3px solid #14b8a6; outline-offset: 3px; }
-  .kb-badge { position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 14px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
+  .kb-badge { pointer-events: none; position: absolute; right: 14px; bottom: 14px; z-index: 2; display: flex; flex-direction: column; align-items: flex-end; padding: 10px 14px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
   .kb-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
   .kb-badge b { font: 600 30px/1 var(--serif); color: var(--ink); white-space: nowrap; }
   .kb-cap { margin: 14px 0 0; font: italic 500 22px/1.2 var(--serif); color: var(--muted); text-align: center; }
