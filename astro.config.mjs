@@ -4,5 +4,6 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://lesiveducation.github.io',
   base: '/ViVa',
-  integrations: [sitemap()],
+  // Конструктор пока на демо-ценах: не отдаём его поисковикам.
+  integrations: [sitemap({ filter: (page) => !page.includes('/konstruktor/') })],
 });

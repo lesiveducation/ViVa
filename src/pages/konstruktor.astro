@@ -1,0 +1,330 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BASES, STONES } from '../data/konstruktor.js';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const img = `${base}images/konstruktor/`;
+const master = 'https://t.me/vafanasievav';
+const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+const b0 = BASES[2];
+const s0 = STONES[1];
+const data = JSON.stringify({ BASES, STONES });
+
+// Посадка по умолчанию (кольцо + камень) рассчитана заранее, чтобы превью было собрано и без JavaScript.
+const m = b0.mount;
+const sw = 2 * m.r * s0.ringW, sh = sw * s0.ratio;
+const stoneStyle = `left:${(m.cx - sw / 2) / 10}%;top:${(m.cy + m.r - sh) / 10}%;width:${sw / 10}%`;
+const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.prongs.w / 10}%`;
+---
+<Layout title="Конструктор украшений — ViVA" description="Соберите украшение ViVA: основа, натуральный камень и размер с живым превью." noindex>
+  <section class="page-hero kb-hero">
+    <div class="container">
+      <div class="breadcrumbs">Главная / Конструктор</div>
+      <h1>Соберите своё украшение</h1>
+      <p>Выберите основу, камень и размер. Превью и цена меняются сразу, а готовый дизайн можно отправить мастеру.</p>
+    </div>
+  </section>
+
+  <section class="kb">
+    <div class="container kb-grid">
+      <div class="kb-stage-col">
+        <div class="kb-stage" id="kbStage">
+          <img class="kb-layer kb-base" id="kbBase" src={`${img}base-${b0.id}.jpg`} alt="" width="1000" height="1000" />
+          <img class="kb-layer kb-stone" id="kbStone" src={`${img}stone-${s0.id}.png`} alt="" style={stoneStyle} />
+          <img class="kb-layer kb-prongs" id="kbProngs" src={`${img}ring-prongs.png`} alt="" style={prongStyle} />
+          <svg class="kb-layer kb-bail" id="kbBail" style="display:none" viewBox="0 0 1000 1000" aria-hidden="true">
+            <defs>
+              <linearGradient id="kbSilver" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#f4f4f6" />
+                <stop offset=".45" stop-color="#a9a9b0" />
+                <stop offset=".7" stop-color="#e6e6ea" />
+                <stop offset="1" stop-color="#8d8d95" />
+              </linearGradient>
+            </defs>
+            <ellipse id="kbBailRing" cx="0" cy="0" rx="0" ry="0" fill="none" stroke="url(#kbSilver)" stroke-width="8" />
+          </svg>
+        </div>
+        <p class="kb-cap" id="kbCap">{b0.name} · {s0.name}</p>
+        <p class="kb-note">Превью условное: камень посажен на фотографию основы. Перед изготовлением мастер согласует с вами детали.</p>
+      </div>
+
+      <div class="kb-panel">
+        <noscript><p class="kb-nojs">Превью обновляется с включённым JavaScript. Варианты и цены видны и без него.</p></noscript>
+        <form id="kbForm" onsubmit="return false">
+          <fieldset class="kb-step">
+            <legend><span class="kb-num">1</span> Основа</legend>
+            <div class="kb-cards kb-bases">
+              {BASES.map((b) => (
+                <label class="kb-card">
+                  <input type="radio" name="base" value={b.id} checked={b.id === b0.id} />
+                  <img src={`${img}thumb-${b.id}.jpg`} alt="" width="240" height="240" loading="lazy" />
+                  <span class="kb-name">{b.name}</span>
+                  <span class="kb-meta">{b.material}</span>
+                  <span class="kb-price">{rub(b.price)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset class="kb-step">
+            <legend><span class="kb-num">2</span> Камень</legend>
+            <div class="kb-cards kb-stones">
+              {STONES.map((s) => (
+                <label class="kb-card">
+                  <input type="radio" name="stone" value={s.id} checked={s.id === s0.id} />
+                  <span class="kb-chip"><img src={`${img}chip-${s.id}.png`} alt="" loading="lazy" /></span>
+                  <span class="kb-name">{s.name}</span>
+                  <span class="kb-meta">{s.cut} · {s.mood}</span>
+                  <span class="kb-price">+{rub(s.price)}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset class="kb-step">
+            <legend><span class="kb-num">3</span> <span id="kbSizeLabel">{b0.sizeLabel}</span></legend>
+            <div class="kb-sizes" id="kbSizes">
+              {b0.sizes.map((z) => (
+                <label class="kb-pill"><input type="radio" name="size" value={z} checked={z === b0.sizeDefault} /><span>{z}</span></label>
+              ))}
+            </div>
+          </fieldset>
+        </form>
+
+        <div class="kb-summary" id="kbSummary">
+          <div class="eyebrow">Ваше украшение</div>
+          <p class="kb-sum-title" id="kbTitle">{b0.name} с камнем «{s0.name}»</p>
+          <dl class="kb-lines">
+            <div><dt id="kbBaseName">{b0.name}</dt><dd id="kbBasePrice">{rub(b0.price)}</dd></div>
+            <div><dt id="kbStoneName">{s0.name}, {s0.cut.toLowerCase()}</dt><dd id="kbStonePrice">+{rub(s0.price)}</dd></div>
+            <div><dt id="kbSizeName">{b0.sizeLabel}</dt><dd id="kbSize">{b0.sizeDefault}</dd></div>
+            <div class="kb-total"><dt>Итого</dt><dd id="kbTotal">{rub(b0.price + s0.price)}</dd></div>
+          </dl>
+          <div class="kb-actions">
+            <a class="button" id="kbOrder" href={master} target="_blank" rel="noopener">Обсудить с мастером</a>
+            <button class="button outline" type="button" id="kbCopy">Скопировать ссылку</button>
+          </div>
+          <p class="kb-status" id="kbStatus" role="status" aria-live="polite"></p>
+          <p class="kb-fine">Цены и названия ориентировочные, окончательную стоимость подтверждает мастер. По кнопке «Обсудить с мастером» откроется Telegram, а описание дизайна скопируется — останется вставить его в чат.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="kb-bar">
+    <div class="kb-bar-in">
+      <a class="kb-mini" id="kbMini" href="#kbStage" data-scroll="kbStage" aria-label="Показать превью"></a>
+      <span class="kb-bar-total"><small>Итого</small> <b id="kbBarTotal">{rub(b0.price + s0.price)}</b></span>
+      <a class="button" href="#kbSummary" data-scroll="kbSummary">К заказу</a>
+    </div>
+  </div>
+
+  <script type="application/json" id="kbData" set:html={data}></script>
+  <script is:inline>
+    (function () {
+      var D = JSON.parse(document.getElementById('kbData').textContent);
+      var $ = function (id) { return document.getElementById(id); };
+      var form = $('kbForm'), stage = $('kbStage');
+      var baseImg = $('kbBase'), stoneImg = $('kbStone'), prongs = $('kbProngs'), bail = $('kbBail'), ring = $('kbBailRing');
+      var imgDir = baseImg.getAttribute('src').replace(/base-[a-z]+\.jpg$/, '');
+      var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; };
+      var byId = function (list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; };
+      var pct = function (v) { return (v / 10) + '%'; };
+      var orderText = '';
+
+      // предзагрузка слоёв, чтобы смена была мгновенной
+      D.BASES.forEach(function (b) { new Image().src = imgDir + 'base-' + b.id + '.jpg'; });
+      D.STONES.forEach(function (s) { new Image().src = imgDir + 'stone-' + s.id + '.png'; });
+
+      function renderSizes(b, keep) {
+        var box = $('kbSizes');
+        var sel = b.sizes.indexOf(keep) >= 0 ? keep : b.sizeDefault;
+        box.innerHTML = '';
+        b.sizes.forEach(function (z) {
+          var l = document.createElement('label'); l.className = 'kb-pill';
+          var i = document.createElement('input'); i.type = 'radio'; i.name = 'size'; i.value = z; i.checked = z === sel;
+          var s = document.createElement('span'); s.textContent = z;
+          l.appendChild(i); l.appendChild(s); box.appendChild(l);
+        });
+        $('kbSizeLabel').textContent = b.sizeLabel;
+      }
+
+      function place(b, s) {
+        var m = b.mount, w, h, left, top;
+        if (m.type === 'pendant') {
+          var bs = 46 * m.k;
+          w = s.pendantW * m.k; h = w * s.ratio;
+          left = m.x - w / 2; top = m.y + bs * 0.75;
+          ring.setAttribute('cx', m.x); ring.setAttribute('cy', m.y - bs * 0.1 + bs / 2);
+          ring.setAttribute('rx', bs * 0.275); ring.setAttribute('ry', bs / 2);
+          ring.setAttribute('stroke-width', Math.max(5, bs * 0.17));
+          bail.style.display = ''; prongs.hidden = true;
+        } else {
+          w = 2 * m.r * s.ringW; h = w * s.ratio;
+          left = m.cx - w / 2;
+          top = s.centered ? m.cy - h / 2 : m.cy + m.r - h;
+          prongs.style.left = pct(m.prongs.x); prongs.style.top = pct(m.prongs.y); prongs.style.width = pct(m.prongs.w);
+          bail.style.display = 'none'; prongs.hidden = false;
+        }
+        stoneImg.style.left = pct(left); stoneImg.style.top = pct(top); stoneImg.style.width = pct(w);
+      }
+
+      function syncMini() {
+        var c = stage.cloneNode(true);
+        c.removeAttribute('id');
+        c.querySelectorAll('[id]').forEach(function (n) { n.removeAttribute('id'); });
+        c.querySelectorAll('defs').forEach(function (n) { n.remove(); });
+        $('kbMini').innerHTML = ''; $('kbMini').appendChild(c);
+      }
+
+      function state() {
+        var f = new FormData(form);
+        return { b: f.get('base'), s: f.get('stone'), z: f.get('size') };
+      }
+
+      function update(fromBase) {
+        var st = state();
+        var b = byId(D.BASES, st.b), s = byId(D.STONES, st.s);
+        if (fromBase) { renderSizes(b, st.z); st = state(); }
+        var swap = baseImg.getAttribute('src').indexOf(b.id) < 0 || stoneImg.getAttribute('src').indexOf(s.id) < 0;
+        var apply = function () {
+          baseImg.src = imgDir + 'base-' + b.id + '.jpg';
+          stoneImg.src = imgDir + 'stone-' + s.id + '.png';
+          place(b, s);
+          stage.classList.remove('kb-fading');
+          syncMini();
+        };
+        if (swap) { stage.classList.add('kb-fading'); setTimeout(apply, 160); } else apply();
+
+        var total = b.price + s.price;
+        $('kbCap').textContent = b.name + ' · ' + s.name;
+        $('kbTitle').textContent = b.name + ' с камнем «' + s.name + '»';
+        $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
+        $('kbStoneName').textContent = s.name + ', ' + s.cut.toLowerCase(); $('kbStonePrice').textContent = '+' + rub(s.price);
+        $('kbSizeName').textContent = b.sizeLabel; $('kbSize').textContent = st.z;
+        $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total);
+
+        var hash = '#b=' + b.id + '&s=' + s.id + '&z=' + encodeURIComponent(st.z);
+        if (location.hash !== hash) history.replaceState(null, '', hash);
+        orderText = 'Здравствуйте! Хочу украшение из конструктора ViVA:\n' +
+          b.name + ' + ' + s.name + ' (' + s.cut.toLowerCase() + ')\n' +
+          b.sizeLabel + ': ' + st.z + '\n' +
+          'Сумма по конструктору: ' + rub(total) + '\n' + location.href;
+        $('kbStatus').textContent = '';
+      }
+
+      function fromHash() {
+        var p = {};
+        location.hash.replace(/^#/, '').split('&').forEach(function (kv) {
+          var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+        });
+        if (!p.b) return;
+        var b = byId(D.BASES, p.b), s = byId(D.STONES, p.s);
+        form.querySelector('input[name=base][value="' + b.id + '"]').checked = true;
+        form.querySelector('input[name=stone][value="' + s.id + '"]').checked = true;
+        renderSizes(b, p.z);
+      }
+
+      function copy(text, done) {
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () {});
+      }
+
+      // прокрутка без смены адреса: в адресе хранится выбранный дизайн
+      document.querySelectorAll('[data-scroll]').forEach(function (a) {
+        a.addEventListener('click', function (e) { e.preventDefault(); $(a.getAttribute('data-scroll')).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      });
+      form.addEventListener('change', function (e) { update(e.target.name === 'base'); });
+      $('kbOrder').addEventListener('click', function () {
+        copy(orderText, function () { $('kbStatus').textContent = 'Описание дизайна скопировано — вставьте его в чат с мастером.'; });
+      });
+      $('kbCopy').addEventListener('click', function () {
+        if (navigator.clipboard && window.isSecureContext) copy(location.href, function () { $('kbStatus').textContent = 'Ссылка на этот дизайн скопирована.'; });
+        else prompt('Скопируйте ссылку:', location.href);
+      });
+
+      fromHash();
+      update(false);
+    })();
+  </script>
+</Layout>
+
+<style is:global>
+  .kb-hero { padding: 64px 0 44px; }
+  .kb-hero h1 { font-size: clamp(52px, 7vw, 96px); letter-spacing: -.05em; }
+  .kb { padding: 48px 0 96px; background: var(--paper); }
+  .kb-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: start; }
+  .kb-stage-col { position: sticky; top: 100px; }
+  .kb-stage { position: relative; aspect-ratio: 1; background: #fff; border: 1px solid var(--line); overflow: hidden; scroll-margin-top: 96px; }
+  .kb-layer { position: absolute; transition: opacity .16s ease; }
+  .kb-layer[hidden] { display: none; }
+  .kb-base, .kb-bail { inset: 0; width: 100%; height: 100%; }
+  .kb-bail { pointer-events: none; }
+  .kb-stone { height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
+  .kb-stage.kb-fading .kb-layer { opacity: 0; }
+  .kb-cap { margin: 14px 0 0; font: italic 500 22px/1.2 var(--serif); color: var(--muted); text-align: center; }
+  .kb-note { margin: 6px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+  .kb-nojs { background: var(--cream); padding: 10px 14px; font-size: 13px; }
+  #kbForm { margin: 0; }
+  .kb-step { border: 0; padding: 0; margin: 0 0 30px; min-width: 0; }
+  .kb-step legend { padding: 0; margin-bottom: 12px; font: 500 30px/1 var(--serif); display: flex; align-items: center; gap: 10px; }
+  .kb-num { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--olive); color: var(--olive); font: 700 11px/24px var(--sans); text-align: center; flex: none; }
+  .kb-cards { display: grid; gap: 8px; }
+  .kb-bases { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kb-stones { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kb-card { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 10px 10px 12px; background: var(--cream); border: 1px solid var(--line); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .kb-card:hover { border-color: var(--olive); }
+  .kb-card input, .kb-pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .kb-card:has(input:checked) { border-color: var(--olive); box-shadow: inset 0 0 0 1px var(--olive); }
+  .kb-card:has(input:focus-visible), .kb-pill:has(input:focus-visible) { outline: 3px solid #14b8a6; outline-offset: 3px; }
+  .kb-card > img { width: 100%; height: auto; aspect-ratio: 1; object-fit: contain; background: #fff; margin-bottom: 6px; }
+  .kb-chip { display: grid; place-items: center; aspect-ratio: 1; background: radial-gradient(circle at 50% 45%, #fff 0 45%, var(--paper) 46%); margin-bottom: 6px; }
+  .kb-chip img { width: 58%; height: 58%; object-fit: contain; }
+  .kb-name { font: 600 19px/1.05 var(--serif); }
+  .kb-meta { font-size: 12px; line-height: 1.35; color: var(--muted); }
+  .kb-price { margin-top: auto; padding-top: 6px; font-size: 13px; font-weight: 600; }
+  .kb-sizes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .kb-pill { position: relative; cursor: pointer; }
+  .kb-pill span { display: block; min-width: 56px; padding: 9px 14px; text-align: center; border: 1px solid var(--line); background: var(--cream); font-size: 14px; }
+  .kb-pill:hover span { border-color: var(--olive); }
+  .kb-pill input:checked + span { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .kb-summary { background: var(--cream); border: 1px solid var(--line); padding: 26px; scroll-margin-top: 96px; }
+  .kb-sum-title { font: 500 30px/1.05 var(--serif); margin: 10px 0 14px; }
+  .kb-lines { margin: 0 0 18px; }
+  .kb-lines div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .kb-lines dt { color: var(--muted); }
+  .kb-lines dd { margin: 0; white-space: nowrap; }
+  .kb-lines .kb-total { border-bottom: 0; padding-top: 12px; font-size: 16px; }
+  .kb-lines .kb-total dt { color: var(--ink); font-weight: 600; }
+  .kb-lines .kb-total dd { font: 600 30px/1 var(--serif); }
+  .kb-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .kb-actions .button { min-height: 48px; cursor: pointer; font-family: var(--sans); }
+  .kb-status { min-height: 1.2em; margin: 8px 0 0; font-size: 13px; color: var(--accent-dark); }
+  .kb-fine { margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+  .kb-bar { display: none; }
+  @media (max-width: 900px) {
+    .kb { padding: 24px 0 40px; }
+    .kb-grid { grid-template-columns: 1fr; gap: 28px; }
+    .kb-stage-col { position: static; }
+    .kb-stones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 620px) {
+    .kb-hero { padding: 40px 0 28px; }
+    .kb-hero h1 { font-size: 54px; }
+    .kb-card { padding: 7px 7px 10px; }
+    .kb-name { font-size: 17px; }
+    .kb-meta { font-size: 11.5px; }
+    .kb-stones .kb-chip { aspect-ratio: auto; height: 96px; background: var(--paper); }
+    .kb-stones .kb-chip img { width: auto; height: 80px; }
+    .kb-summary { padding: 20px 16px; }
+    .kb-actions .button { width: 100%; }
+    .kb-bar { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: rgba(246, 243, 232, .97); border-top: 1px solid var(--line); padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+    .kb-bar-in { display: flex; align-items: center; gap: 12px; }
+    .kb-mini { flex: none; width: 52px; height: 52px; display: block; border: 1px solid var(--line); background: #fff; overflow: hidden; }
+    .kb-mini .kb-stage { border: 0; width: 52px; }
+    .kb-bar-total { margin-right: auto; }
+    .kb-bar-total small { display: block; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+    .kb-bar-total b { font: 600 26px/1 var(--serif); }
+    .kb-bar .button { min-height: 44px; }
+    .site-footer { padding-bottom: 96px; }
+  }
+</style>
