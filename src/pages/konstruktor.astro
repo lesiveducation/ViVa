@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { BASES, STONES, BEADS } from '../data/konstruktor.js';
+import { BASES, STONES, BEADS, PENDANTS, PENDANT_MAX } from '../data/konstruktor.js';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const img = `${base}images/konstruktor/`;
@@ -8,7 +8,7 @@ const master = 'https://t.me/vafanasievav';
 const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
 const b0 = BASES[2];
 const s0 = STONES[1];
-const data = JSON.stringify({ BASES, STONES, BEADS });
+const data = JSON.stringify({ BASES, STONES, BEADS, PENDANTS, PENDANT_MAX });
 const add0 = b0.sizeAdd[b0.sizes.indexOf(b0.sizeDefault)];
 const total0 = b0.price + add0 + s0.price;
 const stonesWord = (n) => (n === 1 ? 'камень' : n < 5 ? 'камня' : 'камней');
@@ -43,6 +43,12 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                 <stop offset=".45" stop-color="#a9a9b0" />
                 <stop offset=".7" stop-color="#e6e6ea" />
                 <stop offset="1" stop-color="#8d8d95" />
+              </linearGradient>
+              <linearGradient id="kbGold" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#f6e3a6" />
+                <stop offset=".45" stop-color="#c49a45" />
+                <stop offset=".7" stop-color="#ecd28c" />
+                <stop offset="1" stop-color="#a27a2c" />
               </linearGradient>
             </defs>
             <g id="kbBails"></g>
@@ -95,7 +101,10 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
             <div class="kb-slots" id="kbSlots" hidden>
               <p class="kb-hint" id="kbSlotHint">Выберите позицию на изделии, затем камень для неё.</p>
               <div class="kb-slot-row" id="kbSlotRow" role="group" aria-label="Позиции камней"></div>
-              <button class="kb-link" type="button" id="kbAll">Сделать все камни как выбранный</button>
+              <div class="kb-links">
+                <button class="kb-link" type="button" id="kbAll">Сделать все камни как выбранный</button>
+                <button class="kb-link" type="button" id="kbReset" hidden>Вернуть как в шаблоне</button>
+              </div>
             </div>
             <div class="kb-cards kb-stones" id="kbCutSet">
               {STONES.map((s) => (
@@ -116,6 +125,22 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
                   <span class="kb-name">{s.name}</span>
                   <span class="kb-meta">{s.cut} · {s.mood}</span>
                   <span class="kb-price">{s.price ? '+' + rub(s.price) : 'в цене'}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset class="kb-step" id="kbPendStep" hidden>
+            <legend><span class="kb-num">4</span> Подвески</legend>
+            <p class="kb-hint kb-pend-hint" id="kbPendHint">Можно добавить до {PENDANT_MAX} подвесок, они висят на верхних бусинах. Нажмите ещё раз, чтобы убрать.</p>
+            <div class="kb-cards kb-stones kb-pends">
+              {PENDANTS.map((d) => (
+                <label class="kb-card">
+                  <input type="checkbox" name="pendant" value={d.id} />
+                  <span class="kb-chip"><img src={`${img}pend-${d.id}.png`} alt="" loading="lazy" /></span>
+                  <span class="kb-name">{d.name}</span>
+                  <span class="kb-meta">{d.note}</span>
+                  <span class="kb-price">+{rub(d.price)}</span>
                 </label>
               ))}
             </div>
@@ -172,6 +197,9 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       var chip = function (id) { return imgDir + (isBead(id) ? 'bead-' : 'chip-') + id + '.png'; };
       // выбор камней запоминается отдельно для бусинного браслета и для остальных основ
       var memo = {}, curSet = '', beadsLoaded = false;
+      // подвески браслета «Иней» в порядке выбора: первая висит по центру, затем слева и справа
+      var pends = [];
+      var pendOf = function (id) { return byId(D.PENDANTS, id); };
 
       // slots[i] — камень на позиции i (0 — центральная); active — позиция, которую сейчас меняют
       var slots = [form.querySelector('input[name=stone]:checked').value], active = 0;
@@ -202,7 +230,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       }
       function perSlot(b, n) { return isBeads(b) || (b.mount.type === 'pendant' && n > 1); }
       // порядок позиций для подписи кнопок: подвески слева направо, бусины по часовой стрелке от верхней
-      function order(n, b) { return b && isBeads(b) ? [0, 1, 2, 3, 4] : n === 5 ? [3, 1, 0, 2, 4] : n === 3 ? [1, 0, 2] : [0]; }
+      function order(n, b) { return b && isBeads(b) ? b.mount.points.map(function (p, i) { return i; }) : n === 5 ? [3, 1, 0, 2, 4] : n === 3 ? [1, 0, 2] : [0]; }
 
       function renderSlots(b, n) {
         var on = perSlot(b, n);
@@ -211,9 +239,11 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbStoneNum').textContent = b.counts.length < 2 ? 3 : 4;
         $('kbCutSet').hidden = isBeads(b); $('kbBeadSet').hidden = !isBeads(b);
         if (!on) return;
-        $('kbSlotHint').textContent = isBeads(b) ? 'В шаблоне 5 бусин хрусталя. Нажмите на бусину на фото или на её номер ниже, затем выберите камень — можно заменить от одной до всех пяти.' : 'Нажмите на камень на фото или на его номер ниже, затем выберите камень для этой позиции.';
-        $('kbAll').textContent = isBeads(b) ? 'Сделать все пять как выбранная' : 'Сделать все камни как выбранный';
+        $('kbSlotHint').textContent = isBeads(b) ? 'Каждую из 20 бусин можно заменить. Нажмите на бусину на фото или на её номер ниже, затем выберите камень. Номера идут по часовой стрелке от верхней.' : 'Нажмите на камень на фото или на его номер ниже, затем выберите камень для этой позиции.';
+        $('kbAll').textContent = isBeads(b) ? 'Сделать все бусины как выбранная' : 'Сделать все камни как выбранный';
+        $('kbReset').hidden = !isBeads(b);
         var row = $('kbSlotRow'); row.innerHTML = '';
+        row.classList.toggle('is-many', n > 5);
         order(n, b).forEach(function (i, k) {
           var s = st(slots[i]);
           var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kb-slot' + (i === active ? ' is-active' : '');
@@ -237,6 +267,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       }
       function renderHot(b, n, spots) {
         var box = $('kbHot'); box.innerHTML = '';
+        box.classList.toggle('kb-hot-quiet', isBeads(b));
         if (!perSlot(b, n)) return;
         order(n, b).forEach(function (i, k) {
           var sp = spots[i]; if (!sp) return;
@@ -268,14 +299,20 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
           }
           bail.style.display = ''; prongs.hidden = true;
         } else if (m.type === 'beads') {
-          // хрусталь уже есть на фотографии шаблона — рисуем только заменённые бусины
+          // бусины шаблона уже есть на фотографии — рисуем только заменённые
           m.points.forEach(function (p, i) {
             spots[i] = [p[0], p[1], p[2] * m.f];
-            if (slots[i] === 'crystal') return;
+            if (slots[i] === m.def[i]) return;
             var d = 2 * p[2] * m.f;
             items.push([p[0] - d / 2, p[1] - d / 2, d, slots[i], 'bead']);
           });
-          bail.style.display = 'none'; prongs.hidden = true;
+          // подвески: колечко на бусине и подвеска под ним
+          pends.forEach(function (id, k) {
+            var d = pendOf(id), h = m.hooks[k], w = Math.min(d.w, 250 / d.ratio);
+            rings += '<ellipse cx="' + h[0] + '" cy="' + (h[1] + 12) + '" rx="9" ry="15" fill="none" stroke="url(#' + (d.metal === 'gold' ? 'kbGold' : 'kbSilver') + ')" stroke-width="5"/>';
+            items.push([h[0] - w * d.ax, h[1] + 20, w, d.id, 'pend']);
+          });
+          bail.style.display = ''; prongs.hidden = true;
         } else {
           var s0 = st(slots[0]);
           if (n === 3) [-1, 1].forEach(function (sg) {
@@ -290,8 +327,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         bails.innerHTML = rings;
         stonesBox.innerHTML = '';
         items.forEach(function (it) {
-          var im = document.createElement('img'); im.className = it[4] ? 'kb-stone kb-bead' : 'kb-stone'; im.alt = '';
-          im.src = imgDir + (it[4] ? 'bead-' : 'stone-') + it[3] + '.png';
+          var im = document.createElement('img'); im.className = it[4] ? 'kb-stone kb-' + it[4] : 'kb-stone'; im.alt = '';
+          im.src = imgDir + (it[4] || 'stone') + '-' + it[3] + '.png';
           im.style.left = pct(it[0]); im.style.top = pct(it[1]); im.style.width = pct(it[2]);
           stonesBox.appendChild(im);
         });
@@ -306,8 +343,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbMini').innerHTML = ''; $('kbMini').appendChild(c);
       }
 
-      function fitSlots(n) {
-        while (slots.length < n) slots.push(slots[0]);
+      function fitSlots(n, b) {
+        while (slots.length < n) slots.push(isBeads(b) ? b.mount.def[slots.length] : slots[0]);
         slots.length = n;
         if (active >= n) active = 0;
       }
@@ -321,12 +358,15 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         } else {
           var groups = {}, ids = [];
           slots.forEach(function (id) { if (!groups[id]) { groups[id] = 0; ids.push(id); } groups[id]++; });
+          // бусины шаблона (в цене) — первыми строками
+          if (isBeads(b)) ids.sort(function (x, y) { return (st(x).price ? 1 : 0) - (st(y).price ? 1 : 0); });
           ids.forEach(function (id) {
             var s = st(id), sum = s.price * groups[id]; total += sum;
-            var label = isBeads(b) ? s.name + (id === 'crystal' ? ', как в шаблоне' : '') : s.name + ', ' + s.cut.toLowerCase();
+            var label = isBeads(b) ? s.name + (s.price ? '' : ', как в шаблоне') : s.name + ', ' + s.cut.toLowerCase();
             lines.push([label + (groups[id] > 1 || c.n > 1 ? ' × ' + groups[id] : ''), sum]);
           });
         }
+        if (isBeads(b)) pends.forEach(function (id) { var d = pendOf(id); total += d.price; lines.push(['Подвеска «' + d.name + '»', d.price]); });
         return { lines: lines, total: total };
       }
 
@@ -337,7 +377,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         var set = isBeads(b) ? 'bead' : 'cut';
         if (curSet && set !== curSet) {
           memo[curSet] = { slots: slots.slice(), active: active };
-          var saved = memo[set] || { slots: [set === 'bead' ? 'crystal' : D.STONES[1].id], active: 0 };
+          var saved = memo[set] || { slots: set === 'bead' ? b.mount.def.slice() : [D.STONES[1].id], active: 0 };
           slots = saved.slots.slice(); active = saved.active;
         }
         curSet = set;
@@ -346,7 +386,7 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         if (changed === 'base' || changed === 'init') renderCounts(b, c.n);
         c = countOf(b, Number(new FormData(form).get('count')) || 1);
         if (!perSlot(b, c.n)) { slots = slots.map(function () { return slots[active] || slots[0]; }); active = 0; }
-        fitSlots(c.n);
+        fitSlots(c.n, b);
         renderSlots(b, c.n);
         syncStoneRadios();
         if (changed === 'stone' || changed === 'all') renderCounts(b, c.n);
@@ -361,8 +401,16 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         var total = b.price + sizeAdd + sl.total;
         var main = st(slots[0]);
         var many = sl.lines.length > 1;
-        $('kbCap').textContent = b.name + ' · ' + (many ? 'камни на выбор' : main.name);
-        $('kbTitle').textContent = b.name + (many ? ' с камнями на выбор' : ' с камнем «' + main.name + '»');
+        $('kbPendStep').hidden = !isBeads(b);
+        if (isBeads(b)) {
+          var swapped = slots.filter(function (id, i) { return id !== b.mount.def[i]; }).length;
+          var tail = (swapped ? 'заменено бусин: ' + swapped : 'как в шаблоне') + (pends.length ? ', подвесок: ' + pends.length : '');
+          $('kbCap').textContent = b.name + ' · ' + tail;
+          $('kbTitle').textContent = b.name + ', ' + tail;
+        } else {
+          $('kbCap').textContent = b.name + ' · ' + (many ? 'камни на выбор' : main.name);
+          $('kbTitle').textContent = b.name + (many ? ' с камнями на выбор' : ' с камнем «' + main.name + '»');
+        }
         $('kbBaseName').textContent = b.name; $('kbBasePrice').textContent = rub(b.price);
         $('kbSizeName').textContent = b.sizeLabel + ': ' + z; $('kbSize').textContent = sizeAdd ? '+' + rub(sizeAdd) : rub(0);
         var dl = document.querySelector('.kb-lines'), totalRow = dl.querySelector('.kb-total');
@@ -376,9 +424,17 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         $('kbCountHint').textContent = c.note ? '3 камня — ' + c.note + ': боковые стоят половину цены камня.' : '';
         $('kbTotal').textContent = rub(total); $('kbBarTotal').textContent = rub(total); $('kbStageTotal').textContent = rub(total);
 
-        var hash = '#b=' + b.id + '&z=' + encodeURIComponent(z) + '&n=' + c.n + '&s=' + slots.join(',');
+        var hash = '#b=' + b.id + '&z=' + encodeURIComponent(z) + '&n=' + c.n + '&s=' + slots.join(',') + (isBeads(b) && pends.length ? '&p=' + pends.join(',') : '');
         if (location.hash !== hash) history.replaceState(null, '', hash);
-        var positions = perSlot(b, c.n) ? (isBeads(b) ? '\nБусины по часовой стрелке от верхней: ' : '\nКамни слева направо: ') + order(c.n, b).map(function (i) { return st(slots[i]).name; }).join(', ') : '';
+        var positions = '';
+        if (isBeads(b)) {
+          var sw = [];
+          slots.forEach(function (id, i) { if (id !== b.mount.def[i]) sw.push((i + 1) + ' — ' + st(id).name); });
+          positions = '\n' + (sw.length ? 'Замены (номера бусин по часовой стрелке от верхней): ' + sw.join(', ') : 'Бусины как в шаблоне') +
+            (pends.length ? '\nПодвески: ' + pends.map(function (id) { return pendOf(id).name; }).join(', ') : '');
+        } else if (perSlot(b, c.n)) {
+          positions = '\nКамни слева направо: ' + order(c.n, b).map(function (i) { return st(slots[i]).name; }).join(', ');
+        }
         orderText = 'Здравствуйте! Хочу украшение из конструктора ViVA:\n' + b.name + '\n' +
           b.sizeLabel + ': ' + z + '\n' +
           sl.lines.map(function (l) { return l[0]; }).join('; ') + positions + '\n' +
@@ -396,6 +452,8 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
         form.querySelector('input[name=base][value="' + b.id + '"]').checked = true;
         slots = (p.s || '').split(',').map(function (id) { return byId(setOf(b), id).id; });
         curSet = isBeads(b) ? 'bead' : 'cut';
+        pends = (p.p || '').split(',').filter(function (id) { return D.PENDANTS.some(function (d) { return d.id === id; }); }).slice(0, D.PENDANT_MAX);
+        syncPends();
         renderSizes(b, p.z);
         renderCounts(b, Number(p.n) || 1);
       }
@@ -408,11 +466,24 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
       document.querySelectorAll('[data-scroll]').forEach(function (a) {
         a.addEventListener('click', function (e) { e.preventDefault(); $(a.getAttribute('data-scroll')).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       });
+      function syncPends() {
+        form.querySelectorAll('input[name=pendant]').forEach(function (i) {
+          i.checked = pends.indexOf(i.value) >= 0;
+          i.disabled = !i.checked && pends.length >= D.PENDANT_MAX;
+        });
+      }
       form.addEventListener('change', function (e) {
         if (e.target.name === 'stone') slots[active] = e.target.value;
+        if (e.target.name === 'pendant') {
+          var id = e.target.value, at = pends.indexOf(id);
+          if (e.target.checked && at < 0 && pends.length < D.PENDANT_MAX) pends.push(id);
+          if (!e.target.checked && at >= 0) pends.splice(at, 1);
+          syncPends();
+        }
         update(e.target.name);
       });
       $('kbAll').addEventListener('click', function () { slots = slots.map(function () { return slots[active]; }); update('all'); });
+      $('kbReset').addEventListener('click', function () { slots = cur.b.mount.def.slice(); update('all'); });
       $('kbOrder').addEventListener('click', function () {
         copy(orderText, function () { $('kbStatus').textContent = 'Описание дизайна скопировано — вставьте его в чат с мастером.'; });
       });
@@ -442,6 +513,16 @@ const prongStyle = `left:${m.prongs.x / 10}%;top:${m.prongs.y / 10}%;width:${m.p
   .kb-stone { position: absolute; height: auto; filter: drop-shadow(0 6px 8px rgba(64, 61, 47, .18)); }
   .kb-stage.kb-fading .kb-layer { opacity: 0; }
   .kb-hot { inset: 0; z-index: 1; pointer-events: none; }
+  .kb-hot-quiet .kb-spot:not(.is-active):not(:hover) { border-color: transparent; box-shadow: none; }
+  .kb-pend { filter: drop-shadow(0 3px 4px rgba(40, 50, 60, .3)); }
+  .kb-links { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .kb-slot-row.is-many { gap: 6px; }
+  .kb-slot-row.is-many .kb-slot { width: 44px; height: 44px; }
+  .kb-slot-row.is-many .kb-slot img { width: 28px; height: 28px; }
+  .kb-slot-row.is-many .kb-slot span { left: 2px; top: 0; font-size: 9px; }
+  .kb-pend-hint { margin: -4px 0 12px; }
+  .kb-pends .kb-chip img { width: 64%; height: 64%; }
+  .kb-card:has(input:disabled) { opacity: .45; cursor: not-allowed; }
   .kb-spot { position: absolute; min-width: 40px; min-height: 40px; transform: translate(-50%, -50%); padding: 0; border: 2px dashed rgba(255, 255, 255, .85); border-radius: 50%; background: none; box-shadow: 0 0 0 1px rgba(64, 61, 47, .25); cursor: pointer; pointer-events: auto; transition: border-color .15s, box-shadow .15s; }
   .kb-spot:hover { border-style: solid; border-color: #fff; }
   .kb-spot.is-active { border: 3px solid #fff; box-shadow: 0 0 0 3px var(--olive), 0 4px 14px rgba(64, 61, 47, .35); }
