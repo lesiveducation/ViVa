@@ -1,0 +1,928 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { TYPES, BEADS, FILLER, PENDANTS, PENDANT_MAX, STONE_INFO, COLOR_WORDS, DESIGNS, QUIZ } from '../../data/konstruktor-v3.js';
+
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const img = `${base}images/konstruktor/`;
+const master = 'https://t.me/vafanasievav';
+const rub = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+const t0 = TYPES[0], z0 = t0.sizes[0];
+const data = JSON.stringify({ TYPES, BEADS, FILLER, PENDANTS, PENDANT_MAX, STONE_INFO, COLOR_WORDS, DESIGNS, QUIZ });
+---
+<Layout title="Конструктор браслетов — ViVA" description="Соберите браслет ViVA из натуральных камней: перетаскивайте бусины, подберите дизайн по вопросам и получите историю браслета." noindex>
+  <section class="v3">
+    <div class="container v3-wrap">
+      <div class="v3-head">
+        <div class="breadcrumbs">Главная / Конструктор / Версия 3</div>
+        <h1>Соберите браслет</h1>
+        <p>Перетащите камень из ленты на браслет или ответьте на пять вопросов, и мы предложим готовую раскладку. Любую бусину можно поменять.</p>
+      </div>
+
+      <div class="v3-pick">
+        <div class="v3-field">
+          <small>тип браслета</small>
+          <div class="v3-pills" id="v3Types" role="radiogroup" aria-label="Тип браслета">
+            {TYPES.map((t) => (
+              <button type="button" class="v3-pill" data-type={t.id} aria-pressed={String(t.id === t0.id)}>{t.name}</button>
+            ))}
+          </div>
+        </div>
+        <div class="v3-field">
+          <small id="v3SizeLabel">{t0.sizeLabel}</small>
+          <div class="v3-pills" id="v3Sizes" role="radiogroup" aria-label="Размер">
+            {t0.sizes.map((z) => <button type="button" class="v3-pill" data-size={z.id} aria-pressed="true">{z.name}</button>)}
+          </div>
+        </div>
+      </div>
+
+      <div class="v3-work">
+      <div class="v3-stage-wrap">
+        <div class="v3-stage" id="v3Stage">
+          <svg class="v3-cord" id="v3Cord" viewBox="0 0 1000 700" aria-hidden="true"></svg>
+          <div class="v3-beads" id="v3Beads" role="group" aria-label="Бусины браслета"></div>
+          <p class="v3-empty" id="v3Empty">Перетащите камень из ленты на браслет</p>
+          <div class="v3-badge" aria-live="polite"><small>Итого</small><b id="v3StageTotal">{rub(z0.price)}</b></div>
+        </div>
+        <div class="v3-active" id="v3Active" role="status" hidden><span id="v3ActiveText"></span> <button type="button" id="v3Unsel">Снять</button></div>
+      </div>
+
+      <div class="v3-tools">
+        <div class="v3-helpers">
+          <button type="button" class="v3-auto" id="v3Quiz">
+            <span class="v3-auto-ico" aria-hidden="true">✦</span>
+            <span><b>Подобрать за 30 секунд</b><small>5 вопросов о стиле</small></span>
+          </button>
+          <button type="button" class="v3-auto is-quiet" id="v3Auto">
+            <span class="v3-auto-ico" aria-hidden="true">⚡</span>
+            <span><b>Собрать автоматически</b><small>из ваших камней, до конца</small></span>
+          </button>
+        </div>
+        <div class="v3-patterns" role="group" aria-label="Узоры">
+          <span>Узоры:</span>
+          <button type="button" class="v3-chip" data-op="mirror" title="Правая сторона повторит левую">Симметрия</button>
+          <button type="button" class="v3-chip" data-op="alt" title="Два камня через один">Чередование</button>
+          <button type="button" class="v3-chip" data-op="repeat" title="Начало браслета или выделенные бусины повторятся по кругу">Повтор узора</button>
+          <button type="button" class="v3-chip" data-op="range" title="Выделите две бусины, и выделятся все между ними">Выделить диапазон</button>
+        </div>
+        <div class="v3-mini-tools">
+          <button type="button" class="v3-link" id="v3Undo" disabled>Отменить</button>
+          <button type="button" class="v3-link" id="v3Clear">Очистить</button>
+          <button type="button" class="v3-link" id="v3Help">Как собирать?</button>
+        </div>
+        <p class="v3-msg" id="v3Msg" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="v3-palette">
+        <div class="v3-tabs" role="tablist">
+          <button type="button" class="v3-tab" data-tab="all" aria-pressed="true">Все бусины <span>{BEADS.length}</span></button>
+          <button type="button" class="v3-tab" data-tab="used" aria-pressed="false">В браслете</button>
+          <button type="button" class="v3-tab" data-tab="fav" aria-pressed="false">♡ Избранное</button>
+          <label class="v3-search"><span class="visually-hidden">Поиск камня</span><input type="search" id="v3Search" placeholder="Найти камень" autocomplete="off" /></label>
+        </div>
+        <div class="v3-track" id="v3Track">
+          {BEADS.map((s) => (
+            <div class="v3-item" data-id={s.id} data-name={s.name.toLowerCase()}>
+              <button type="button" class="v3-take" aria-label={`Добавить ${s.name} в браслет`}>
+                <img src={`${img}bead-${s.id === FILLER ? 'white' : s.id}.png`} alt="" width="64" height="64" draggable="false" />
+              </button>
+              <span class="v3-iname">{s.name}</span>
+              <span class="v3-iprice">{s.price ? '+' + rub(s.price) : 'в цене'}</span>
+              <button type="button" class="v3-fav" aria-pressed="false" aria-label={`В избранное: ${s.name}`}>♡</button>
+            </div>
+          ))}
+        </div>
+        <p class="v3-hint">На телефоне потяните камень вверх, к браслету. Можно и без перетаскивания: нажмите бусину на браслете (или несколько), затем камень в ленте.</p>
+      </div>
+
+      <div class="v3-pends">
+        <div class="v3-sec-head"><h2>Подвески</h2><small>до {PENDANT_MAX}, висят спереди</small></div>
+        <div class="v3-pend-row" id="v3Pends">
+          {PENDANTS.map((p) => (
+            <button type="button" class="v3-pend" data-pend={p.id} aria-pressed="false">
+              <img src={`${img}pend-${p.id}.png`} alt="" loading="lazy" />
+              <span>{p.name}</span><small>+{rub(p.price)}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      </div>
+
+      <div class="v3-designs">
+        <div class="v3-sec-head"><h2>Дизайны ViVA</h2><small>начните с готового</small></div>
+        <div class="v3-design-row" id="v3Designs">
+          {DESIGNS.map((d) => (
+            <article class="v3-design" data-design={d.id}>
+              <div class="v3-thumb"><svg viewBox="0 0 1000 700" aria-hidden="true"></svg><div class="v3-thumb-beads"></div></div>
+              <h3>{d.name}</h3>
+              <p>{d.note}</p>
+              <b class="v3-design-price"></b>
+              <button type="button" class="button outline v3-use">Изменить под себя</button>
+            </article>
+          ))}
+        </div>
+      </div>
+
+      <div class="v3-summary" id="v3Summary">
+        <div class="eyebrow">Ваш браслет</div>
+        <div class="v3-card">
+          <div class="v3-thumb v3-card-thumb" id="v3CardThumb"><svg viewBox="0 0 1000 700" aria-hidden="true"></svg><div class="v3-thumb-beads"></div></div>
+          <div class="v3-card-main">
+            <label class="v3-name"><span>Название дизайна</span><input type="text" id="v3Name" maxlength="40" autocomplete="off" /></label>
+            <p class="v3-cid">Код конфигурации: <b id="v3Cid"></b></p>
+          </div>
+        </div>
+        <dl class="v3-lines" id="v3Lines"></dl>
+        <div class="v3-total"><span>Итого</span><b id="v3Total">{rub(z0.price)}</b></div>
+
+        <div class="v3-story">
+          <h2>История Вашего браслета</h2>
+          <p id="v3Story"></p>
+          <p class="v3-story-note">Это художественное описание дизайна по цветам и сочетаниям камней. Оно не описывает лечебных или магических свойств.</p>
+          <button type="button" class="v3-link" id="v3CopyStory">Скопировать историю</button>
+        </div>
+
+        <div class="v3-actions">
+          <a class="button" id="v3Order" href={master} target="_blank" rel="noopener">Обсудить с мастером</a>
+          <button class="button outline" type="button" id="v3Copy">Скопировать ссылку</button>
+          <button class="button outline" type="button" id="v3Save">Сохранить дизайн</button>
+        </div>
+        <p class="v3-status" id="v3Status" role="status" aria-live="polite"></p>
+        <div class="v3-saved" id="v3SavedBox" hidden>
+          <h3>Сохранённые дизайны</h3>
+          <ul id="v3Saved"></ul>
+        </div>
+        <p class="v3-fine">Тестовая версия конструктора. Цены и названия ориентировочные, окончательную стоимость подтверждает мастер. По кнопке «Обсудить с мастером» откроется Telegram, а описание браслета с точной последовательностью бусин скопируется. Сохранённые дизайны хранятся только в этом браузере.</p>
+      </div>
+    </div>
+  </section>
+
+  <dialog class="v3-dialog" id="v3Tour" aria-labelledby="v3TourTitle">
+    <div class="v3-dlg-in">
+      <p class="v3-step-n" id="v3TourN">Шаг 1 из 4</p>
+      <ol class="v3-tour">
+        <li><span class="v3-tour-ico" aria-hidden="true">◎</span><h2 id="v3TourTitle">Выберите камень</h2><p>Камни в ленте под браслетом. Есть поиск и вкладка «Избранное»: отметьте понравившиеся сердечком.</p></li>
+        <li hidden><span class="v3-tour-ico" aria-hidden="true">↥</span><h2>Перетащите на бусину</h2><p>Ближайшее место подсветится, камень встанет на него. Или нажмите бусину на браслете, затем камень.</p></li>
+        <li hidden><span class="v3-tour-ico" aria-hidden="true">⇄</span><h2>Меняйте порядок</h2><p>Тяните бусину на другую, чтобы поменять их местами. Унесите за браслет, чтобы вернуть белую. Кнопки «Симметрия», «Чередование» и «Повтор узора» помогут собрать рисунок.</p></li>
+        <li hidden><span class="v3-tour-ico" aria-hidden="true">✓</span><h2>Получите итог</h2><p>Внизу цена, история браслета и кнопка «Обсудить с мастером». Мастер получит точную последовательность бусин.</p></li>
+      </ol>
+      <div class="v3-dlg-btns">
+        <button type="button" class="v3-link" id="v3TourSkip">Пропустить</button>
+        <button type="button" class="button" id="v3TourNext">Далее</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="v3-dialog" id="v3QuizDlg" aria-labelledby="v3QuizQ">
+    <div class="v3-dlg-in">
+      <p class="v3-step-n" id="v3QuizN"></p>
+      <h2 id="v3QuizQ"></h2>
+      <div class="v3-quiz-opts" id="v3QuizOpts"></div>
+      <div class="v3-dlg-btns">
+        <button type="button" class="v3-link" id="v3QuizBack">Назад</button>
+        <button type="button" class="v3-link" id="v3QuizClose">Закрыть</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="application/json" id="v3Data" set:html={data}></script>
+  <script is:inline>
+    (function () {
+      var D = JSON.parse(document.getElementById('v3Data').textContent);
+      var $ = function (id) { return document.getElementById(id); };
+      var stage = $('v3Stage'), beadsBox = $('v3Beads'), cord = $('v3Cord'), track = $('v3Track');
+      var imgDir = document.querySelector('.v3-take img').getAttribute('src').replace(/bead-[a-z-]+\.png$/, '');
+      var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽'; };
+      var byId = function (list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; };
+      var bead = function (id) { return byId(D.BEADS, id); };
+      var pendant = function (id) { return byId(D.PENDANTS, id); };
+      var info = function (id) { return D.STONE_INFO[id] || D.STONE_INFO[D.FILLER]; };
+      var FILL = D.FILLER;
+      var sprite = function (id) { return imgDir + 'bead-' + (id === FILL ? 'white' : id) + '.png'; };
+      // холст 1000×700: браслет — наклонённый овал, снизу место для подвесок
+      var CX = 500, CY = 290, RX = 340, RY = 165, H = 700;
+
+      var type = D.TYPES[0], size = type.sizes[0];
+      var slots = [], pends = [], name = '', sel = [], undo = [], tab = 'all', favs = [], orderText = '', storyText = '', prev = null;
+
+      function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+      function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+      favs = load('viva-kb3-favs') || [];
+
+      function fit(n) { while (slots.length < n) slots.push(FILL); slots.length = n; sel = sel.filter(function (i) { return i < n; }); }
+      function snapshot() { return { t: type.id, z: size.id, s: slots.slice(), p: pends.slice(), n: name }; }
+      function remember() { undo.push(snapshot()); if (undo.length > 60) undo.shift(); $('v3Undo').disabled = false; }
+      function restore(st) {
+        type = byId(D.TYPES, st.t); size = byId(type.sizes, st.z);
+        slots = (st.s || []).map(function (id) { return bead(id).id; }); fit(size.count);
+        pends = (st.p || []).filter(function (id, i, a) { return id && a.indexOf(id) === i && D.PENDANTS.some(function (p) { return p.id === id; }); }).slice(0, D.PENDANT_MAX);
+        name = (st.n || '').slice(0, 40);
+      }
+
+      // позиции бусин: угол по овалу, глубина 0 (сзади) … 1 (спереди)
+      function layoutFor(t, n) {
+        var gap = t.gap, pts = [];
+        var span = 360 - gap, step = gap ? span / (n - 1) : 360 / n, start = gap ? -90 + gap / 2 : 90;
+        var dRad = step * Math.PI / 180, D0 = Math.min(138, RX * dRad * 1.02);
+        for (var i = 0; i < n; i++) {
+          var a = (start + i * step) * Math.PI / 180;
+          var depth = (Math.sin(a) + 1) / 2, sc = 0.7 + 0.3 * depth;
+          pts.push({ x: CX + RX * Math.cos(a), y: CY + RY * Math.sin(a), d: D0 * sc, depth: depth });
+        }
+        return pts;
+      }
+      // группы бусин от центра (спереди) к замку: бусина и её зеркальная пара
+      function mirror(t, n, i) { return t.gap ? n - 1 - i : (n - i) % n; }
+      function mirrorOf(i) { return mirror(type, slots.length, i); }
+      function groupsFor(t, n) {
+        var pts = layoutFor(t, n), out = [];
+        for (var i = 0; i < n; i++) { var m = mirror(t, n, i); if (m >= i) out.push(m === i ? [i] : [i, m]); }
+        return out.sort(function (a, b) { return pts[b[0]].depth - pts[a[0]].depth; });
+      }
+
+      function cordSvg(t, pts) {
+        var s = '<defs><radialGradient id="v3Shade" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#403d2f" stop-opacity=".2"/><stop offset="1" stop-color="#403d2f" stop-opacity="0"/></radialGradient></defs>';
+        s += '<ellipse cx="' + CX + '" cy="' + (CY + RY + 64) + '" rx="' + (RX + 50) + '" ry="44" fill="url(#v3Shade)"/>';
+        if (t.gap) {
+          var g = t.gap / 2 + 4, a0 = (-90 - g) * Math.PI / 180, a1 = (-90 + g) * Math.PI / 180;
+          var p0 = [CX + RX * Math.cos(a0), CY + RY * Math.sin(a0)], p1 = [CX + RX * Math.cos(a1), CY + RY * Math.sin(a1)];
+          s += '<path d="M' + p0[0] + ' ' + p0[1] + ' A' + RX + ' ' + RY + ' 0 0 1 ' + p1[0] + ' ' + p1[1] + '" fill="none" stroke="#24221d" stroke-width="26" stroke-linecap="round"/>';
+          var knots = 22;
+          for (var k = 0; k <= knots; k++) {
+            var a = a0 + (a1 - a0) * k / knots, x = CX + RX * Math.cos(a), y = CY + RY * Math.sin(a);
+            var tan = Math.atan2(RY * Math.cos(a), -RX * Math.sin(a)) * 180 / Math.PI;
+            [-1, 1].forEach(function (side) {
+              s += '<ellipse cx="' + x.toFixed(1) + '" cy="' + (y + side * 6).toFixed(1) + '" rx="9" ry="5.5" fill="#3b3830" stroke="#14130f" stroke-width="1.2" transform="rotate(' + (tan + side * 32).toFixed(1) + ' ' + x.toFixed(1) + ' ' + (y + side * 6).toFixed(1) + ')"/>';
+            });
+          }
+        } else {
+          s += '<ellipse cx="' + CX + '" cy="' + CY + '" rx="' + RX + '" ry="' + RY + '" fill="none" stroke="#bdb7a5" stroke-width="3"/>';
+        }
+        // мягкая тень под каждой бусиной: дальние бусины — светлее и меньше
+        pts.forEach(function (p) {
+          s += '<ellipse cx="' + p.x.toFixed(1) + '" cy="' + (p.y + p.d * 0.4).toFixed(1) + '" rx="' + (p.d * 0.42).toFixed(1) + '" ry="' + (p.d * 0.11).toFixed(1) + '" fill="#2e2b22" opacity="' + (0.08 + 0.1 * p.depth).toFixed(2) + '"/>';
+        });
+        return s;
+      }
+
+      // точки подвеса: центр спереди, затем слева и справа
+      function hooks() {
+        return [90, 114, 66].map(function (deg) { var a = deg * Math.PI / 180; return { x: CX + RX * Math.cos(a), y: CY + RY * Math.sin(a) }; });
+      }
+
+      // рисует браслет в любом контейнере: на сцене (с выделением) и в миниатюрах
+      function draw(box, svg, t, s, pd, opt) {
+        opt = opt || {};
+        var pts = layoutFor(t, s.length);
+        svg.innerHTML = cordSvg(t, pts);
+        var html = '';
+        pts.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return a[0].depth - b[0].depth; }).forEach(function (pi) {
+          var p = pi[0], i = pi[1], b = bead(s[i]);
+          var cls = 'v3-bead' + (opt.sel && opt.sel.indexOf(i) >= 0 ? ' is-sel' : '') + (opt.pop && opt.pop.indexOf(i) >= 0 ? ' is-pop' : '');
+          var st = 'left:' + ((p.x - p.d / 2) / 10).toFixed(2) + '%;top:' + ((p.y - p.d / 2) / (H / 100)).toFixed(2) + '%;width:' + (p.d / 10).toFixed(2) + '%;z-index:' + Math.round(p.depth * 100) + ';--dim:' + (0.84 + 0.16 * p.depth).toFixed(2);
+          if (opt.interactive) {
+            var on = opt.sel.indexOf(i) >= 0;
+            html += '<img class="' + cls + '" src="' + sprite(b.id) + '" alt="" draggable="false" data-i="' + i + '" role="button" tabindex="0" aria-label="Бусина ' + (i + 1) + ': ' + b.name + (on ? ', выделена' : '') + '" style="' + st + '">';
+            if (on) html += '<span class="v3-num" style="left:' + (p.x / 10).toFixed(2) + '%;top:' + ((p.y - p.d / 2) / (H / 100)).toFixed(2) + '%">' + (i + 1) + '</span>';
+          } else html += '<img class="' + cls + '" src="' + sprite(b.id) + '" alt="" style="' + st + '">';
+        });
+        var hk = hooks();
+        pd.forEach(function (id, k) {
+          var pp = pendant(id), w = pp.w * 0.72, hgt = w * pp.ratio, h = hk[k], top = h.y + 52;
+          var metal = pp.metal === 'silver' ? 'is-silver' : '';
+          html += '<span class="v3-ring ' + metal + '" style="left:' + ((h.x - 9) / 10).toFixed(2) + '%;top:' + ((top - 16) / (H / 100)).toFixed(2) + '%"></span>';
+          html += '<img class="v3-pendant" src="' + imgDir + 'pend-' + id + '.png" alt="" draggable="false" style="left:' + ((h.x - w * pp.ax) / 10).toFixed(2) + '%;top:' + (top / (H / 100)).toFixed(2) + '%;width:' + (w / 10).toFixed(2) + '%">';
+        });
+        box.innerHTML = html;
+      }
+
+      function render() {
+        var pop = prev ? slots.map(function (id, i) { return prev[i] !== undefined && prev[i] !== id ? i : -1; }).filter(function (i) { return i >= 0; }) : [];
+        if (prev && prev.length !== slots.length) pop = [];
+        prev = slots.slice();
+        draw(beadsBox, cord, type, slots, pends, { interactive: true, sel: sel, pop: pop });
+        $('v3Empty').hidden = slots.some(function (id) { return id !== FILL; });
+        // «Подобрать за 30 секунд» главная, пока браслет пустой; потом главная — «Собрать автоматически»
+        var empty = !slots.some(function (id) { return id !== FILL; });
+        $('v3Quiz').classList.toggle('is-quiet', !empty); $('v3Auto').classList.toggle('is-quiet', empty);
+        active();
+        summary();
+      }
+
+      function active(target) {
+        var box = $('v3Active'), txt = $('v3ActiveText');
+        if (target !== undefined && target !== null) {
+          txt.textContent = 'Камень встанет на бусину № ' + (target + 1) + ' (' + bead(slots[target]).name + ')';
+          $('v3Unsel').hidden = true; box.hidden = false; return;
+        }
+        $('v3Unsel').hidden = false;
+        if (!sel.length) { box.hidden = true; return; }
+        var nums = sel.slice().sort(function (a, b) { return a - b; }).map(function (i) { return i + 1; });
+        txt.textContent = sel.length === 1
+          ? 'Вы меняете бусину № ' + nums[0] + ' (' + bead(slots[sel[0]]).name + '). Выберите камень в ленте.'
+          : 'Вы меняете бусины № ' + (nums.length > 6 ? nums.slice(0, 6).join(', ') + '… (' + nums.length + ')' : nums.join(', ')) + '. Выберите камень в ленте.';
+        box.hidden = false;
+      }
+
+      function pills() {
+        document.querySelectorAll('#v3Types .v3-pill').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-type') === type.id)); });
+        var box = $('v3Sizes'); box.innerHTML = '';
+        type.sizes.forEach(function (z) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'v3-pill'; b.setAttribute('data-size', z.id);
+          b.setAttribute('aria-pressed', String(z.id === size.id)); b.textContent = z.name; box.appendChild(b);
+        });
+        $('v3SizeLabel').textContent = type.sizeLabel;
+        document.querySelectorAll('.v3-pend').forEach(function (b) { b.setAttribute('aria-pressed', String(pends.indexOf(b.getAttribute('data-pend')) >= 0)); });
+      }
+
+      function priceOf(z, s, pd) {
+        return z.price + s.reduce(function (a, id) { return a + bead(id).price; }, 0) + pd.reduce(function (a, id) { return a + pendant(id).price; }, 0);
+      }
+      function counts(s) { var g = {}, ids = []; s.forEach(function (id) { if (!g[id]) { g[id] = 0; ids.push(id); } g[id]++; }); return { g: g, ids: ids }; }
+      function autoName() {
+        var c = counts(slots), used = c.ids.filter(function (id) { return id !== FILL; });
+        if (!used.length) return 'Белый браслет';
+        used.sort(function (a, b) { return c.g[b] - c.g[a]; });
+        return 'Браслет «' + bead(used[0]).name + '»';
+      }
+      function cid() {
+        var str = type.id + '|' + size.id + '|' + slots.join(',') + '|' + pends.join(','), h = 5381;
+        for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0;
+        return 'VV-' + h.toString(36).toUpperCase().slice(0, 6);
+      }
+
+      // ---------- История браслета: собирается из готовых фрагментов, без внешних сервисов ----------
+      // Позже сюда можно подключить перефразирование через серверный прокси; при ошибке остаётся этот текст.
+      function story() {
+        var c = counts(slots), n = slots.length, used = c.ids.filter(function (id) { return id !== FILL; });
+        var groups = groupsFor(type, n), front = slots[groups[0][0]];
+        if (!used.length) return 'Пока браслет белый: ' + n + ' матовых бусин ровным кругом. Это чистый лист — добавьте камни, и история появится.';
+        var colorW = {};
+        slots.forEach(function (id) { var k = info(id).color; colorW[k] = (colorW[k] || 0) + (id === FILL ? 0.5 : 1); });
+        var main = Object.keys(colorW).sort(function (a, b) { return colorW[b] - colorW[a]; })[0];
+        var out = [];
+        var lightShare = slots.filter(function (id) { return info(id).color === 'light'; }).length;
+        out.push('Главная тема браслета — ' + D.COLOR_WORDS[main] + (main !== 'light' && lightShare >= n / 2 ? ', а светлые бусины дают им воздух' : '') + '.');
+        if (front !== FILL) out.push('В центре, на виду, — ' + bead(front).name.toLowerCase() + ': ' + info(front).assoc + '.');
+        // ритм раскладки
+        var sym = slots.every(function (id, i) { return slots[mirrorOf(i)] === id; });
+        var alt = n > 3 && slots.every(function (id, i) { return i < 2 || id === slots[i - 2]; }) && slots[0] !== slots[1];
+        if (alt) out.push('Камни чередуются через один, поэтому рисунок ровный и спокойный.');
+        else if (sym) out.push('Узор зеркальный: левая и правая стороны повторяют друг друга, и браслет выглядит собранным.');
+        else if (used.length >= 3) out.push('Камни идут свободной мозаикой — в браслете нет двух одинаковых участков.');
+        var top = used.slice().sort(function (a, b) { return c.g[b] - c.g[a]; });
+        if (c.g[top[0]] >= n / 3 && top[0] !== front) out.push(bead(top[0]).name + ' повторяется ' + c.g[top[0]] + ' раз и задаёт основной цвет.');
+        // удачные пары по цвету
+        for (var a = 0; a < top.length; a++) for (var b = a + 1; b < top.length; b++) {
+          if (info(top[a]).pairs.indexOf(top[b]) >= 0) { out.push(bead(top[a]).name + ' и ' + bead(top[b]).name.toLowerCase() + ' — удачное сочетание по цвету.'); a = b = top.length; }
+        }
+        top.slice(0, 2).forEach(function (id) { var o = info(id).origin; out.push(o.charAt(0).toUpperCase() + o.slice(1) + '.'); });
+        if (pends.length) out.push('Подвески — ' + pends.map(function (id) { return pendant(id).name.toLowerCase(); }).join(', ') + ' — добавляют браслету движение.');
+        return out.join(' ');
+      }
+
+      function summary() {
+        var c = counts(slots), dl = $('v3Lines'); dl.innerHTML = '';
+        var row = function (a, b) { var d = document.createElement('div'); var t = document.createElement('dt'); t.textContent = a; var v = document.createElement('dd'); v.textContent = b; d.appendChild(t); d.appendChild(v); dl.appendChild(d); };
+        row(type.name + ', ' + size.name + ' · ' + slots.length + ' бусин 10 мм', rub(size.price));
+        c.ids.sort(function (a, b) { return (a === FILL ? 0 : 1) - (b === FILL ? 0 : 1); }).forEach(function (id) {
+          var s = bead(id), sum = s.price * c.g[id]; row(s.name + ' × ' + c.g[id], sum ? '+' + rub(sum) : 'в цене');
+        });
+        pends.forEach(function (id) { var p = pendant(id); row('Подвеска «' + p.name + '»', '+' + rub(p.price)); });
+        if (!pends.length) row('Подвески', 'нет');
+        var total = priceOf(size, slots, pends);
+        $('v3Total').textContent = rub(total); $('v3StageTotal').textContent = rub(total);
+        var title = name || autoName();
+        if (document.activeElement !== $('v3Name')) $('v3Name').value = title;
+        var id = cid(); $('v3Cid').textContent = id;
+        draw($('v3CardThumb').querySelector('.v3-thumb-beads'), $('v3CardThumb').querySelector('svg'), type, slots, pends, {});
+        storyText = story(); $('v3Story').textContent = storyText;
+        var hash = '#t=' + type.id + '&z=' + size.id + '&s=' + slots.join(',') + (pends.length ? '&p=' + pends.join(',') : '') + (name ? '&n=' + encodeURIComponent(name) : '');
+        if (location.hash !== hash) history.replaceState(null, '', hash);
+        store('viva-kb3', snapshot());
+        orderText = 'Здравствуйте! Хочу браслет из конструктора ViVA.\n' +
+          'Дизайн: ' + title + ' (код ' + id + ')\n' +
+          type.name + ', ' + size.name + ', ' + slots.length + ' бусин 10 мм\n' +
+          'Бусины по часовой стрелке, начиная ' + (type.gap ? 'от замка' : 'с центральной передней') + ':\n' +
+          slots.map(function (id, i) { return (i + 1) + '. ' + bead(id).name; }).join('\n') + '\n' +
+          'Подвески: ' + (pends.length ? pends.map(function (id) { return pendant(id).name; }).join(', ') : 'нет') + '\n' +
+          'Сумма по конструктору: ' + rub(total) + ' (ориентировочно)\n' +
+          'История браслета: ' + storyText + '\n' + location.href;
+        $('v3Status').textContent = '';
+        filterTrack();
+      }
+
+      function say(t) { $('v3Msg').textContent = t; }
+
+      // ставим камень: в выделенные бусины, иначе на первое белое место
+      function put(id) {
+        remember();
+        if (sel.length) { sel.forEach(function (i) { slots[i] = id; }); sel = []; }
+        else {
+          var i = slots.indexOf(FILL);
+          if (i < 0) { undo.pop(); say('Свободных белых мест нет. Нажмите бусину на браслете, чтобы заменить её, или перетащите камень прямо на неё.'); return; }
+          slots[i] = id;
+        }
+        say(''); render();
+      }
+
+      // ---------- перетаскивание ----------
+      var drag = null;
+      function centers() {
+        var out = [];
+        beadsBox.querySelectorAll('.v3-bead').forEach(function (el) {
+          var r = el.getBoundingClientRect(); out.push({ i: Number(el.getAttribute('data-i')), x: r.left + r.width / 2, y: r.top + r.height / 2, r: r.width / 2, el: el });
+        });
+        return out;
+      }
+      function nearest(x, y) {
+        var r = stage.getBoundingClientRect(), padX = r.width * 0.08, padY = r.height * 0.14;
+        if (x < r.left - padX || x > r.right + padX || y < r.top - padY || y > r.bottom + padY) return null;
+        var best = null, bd = 1e9;
+        centers().forEach(function (c) { var d = (c.x - x) * (c.x - x) + (c.y - y) * (c.y - y); if (d < bd) { bd = d; best = c; } });
+        return best;
+      }
+      function mark(t) {
+        beadsBox.querySelectorAll('.is-target').forEach(function (e) { e.classList.remove('is-target'); });
+        if (t) t.el.classList.add('is-target');
+        active(t ? t.i : null);
+      }
+      function startDrag(e) {
+        drag.on = true;
+        var g = document.createElement('img'); g.className = 'v3-ghost'; g.src = sprite(drag.id); g.alt = '';
+        var c = centers(), w = c.length ? Math.max.apply(null, c.map(function (q) { return q.r * 2; })) : 64;
+        g.style.width = g.style.height = Math.max(44, w) + 'px';
+        document.body.appendChild(g); drag.ghost = g;
+        document.documentElement.classList.add('v3-dragging');
+        if (drag.src === 'bead') drag.fromEl.classList.add('is-lifted');
+        if (drag.src === 'palette') drag.item.classList.add('is-taken');
+        moveDrag(e);
+      }
+      function moveDrag(e) {
+        drag.ghost.style.transform = 'translate(' + (e.clientX - drag.ghost.offsetWidth / 2) + 'px,' + (e.clientY - drag.ghost.offsetHeight / 2) + 'px)';
+        var t = nearest(e.clientX, e.clientY);
+        if (t && drag.src === 'bead' && t.i === drag.from) t = null;
+        drag.target = t; mark(t);
+      }
+      function endDrag() {
+        if (!drag) return;
+        if (drag.timer) clearTimeout(drag.timer);
+        var d = drag; drag = null;
+        document.documentElement.classList.remove('v3-dragging');
+        if (d.ghost) d.ghost.remove();
+        if (d.item) d.item.classList.remove('is-taken');
+        mark(null);
+        if (!d.on) {
+          if (d.src === 'palette') put(d.id);
+          else { var k = sel.indexOf(d.from); if (k >= 0) sel.splice(k, 1); else sel.push(d.from); say(''); render(); }
+          return;
+        }
+        if (d.src === 'palette') {
+          if (!d.target) return render();
+          remember(); slots[d.target.i] = d.id; sel = [];
+        } else {
+          remember();
+          if (d.target) { var a = slots[d.from]; slots[d.from] = slots[d.target.i]; slots[d.target.i] = a; }
+          else slots[d.from] = FILL;
+          sel = [];
+        }
+        say(''); render();
+      }
+      function begin(e, inf) {
+        if (e.button > 0) return;
+        drag = inf; drag.on = false; drag.x0 = e.clientX; drag.y0 = e.clientY; drag.touch = e.pointerType !== 'mouse';
+        if (drag.touch && inf.src === 'palette') drag.timer = setTimeout(function () { if (drag && !drag.on) { startDrag({ clientX: drag.x0, clientY: drag.y0 }); } }, 280);
+      }
+      window.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        if (!drag.on) {
+          var dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          if (drag.touch && drag.src === 'palette' && Math.abs(dx) > Math.abs(dy)) { clearTimeout(drag.timer); drag = null; return; }
+          clearTimeout(drag.timer); startDrag(e);
+        } else { e.preventDefault(); moveDrag(e); }
+      }, { passive: false });
+      window.addEventListener('pointerup', endDrag);
+      window.addEventListener('pointercancel', function () { if (drag && !drag.on) { clearTimeout(drag.timer); drag = null; } else endDrag(); });
+
+      track.addEventListener('pointerdown', function (e) {
+        var b = e.target.closest('.v3-take'); if (!b) return;
+        var item = b.closest('.v3-item');
+        begin(e, { src: 'palette', id: item.getAttribute('data-id'), item: item });
+      });
+      track.addEventListener('click', function (e) {
+        var f = e.target.closest('.v3-fav');
+        if (f) { var id = f.closest('.v3-item').getAttribute('data-id'), k = favs.indexOf(id); if (k >= 0) favs.splice(k, 1); else favs.push(id); store('viva-kb3-favs', favs); filterTrack(); return; }
+        var b = e.target.closest('.v3-take'); if (b && e.detail === 0) put(b.closest('.v3-item').getAttribute('data-id'));
+      });
+      track.addEventListener('contextmenu', function (e) { if (e.target.closest('.v3-take')) e.preventDefault(); });
+      beadsBox.addEventListener('pointerdown', function (e) {
+        var el = e.target.closest('.v3-bead'); if (!el) return;
+        e.preventDefault();
+        begin(e, { src: 'bead', from: Number(el.getAttribute('data-i')), id: slots[Number(el.getAttribute('data-i'))], fromEl: el });
+      });
+      beadsBox.addEventListener('keydown', function (e) {
+        var el = e.target.closest('.v3-bead'); if (!el || (e.key !== 'Enter' && e.key !== ' ')) return;
+        e.preventDefault(); var i = Number(el.getAttribute('data-i')), k = sel.indexOf(i);
+        if (k >= 0) sel.splice(k, 1); else sel.push(i); render();
+        var again = beadsBox.querySelector('[data-i="' + i + '"]'); if (again) again.focus();
+      });
+      $('v3Unsel').addEventListener('click', function () { sel = []; say(''); render(); });
+
+      // ---------- лента ----------
+      function filterTrack() {
+        var q = $('v3Search').value.trim().toLowerCase();
+        var used = slots.filter(function (id, i) { return id !== FILL && slots.indexOf(id) === i; });
+        var shown = 0;
+        track.querySelectorAll('.v3-item').forEach(function (it) {
+          var id = it.getAttribute('data-id'), fav = favs.indexOf(id) >= 0;
+          var ok = (tab === 'all' || (tab === 'used' && used.indexOf(id) >= 0) || (tab === 'fav' && fav)) && (!q || it.getAttribute('data-name').indexOf(q) >= 0);
+          it.hidden = !ok; if (ok) shown++;
+          var f = it.querySelector('.v3-fav'); f.setAttribute('aria-pressed', String(fav)); f.textContent = fav ? '♥' : '♡';
+        });
+        track.setAttribute('data-empty', shown ? '' : (tab === 'fav' ? 'Отметьте камни сердечком — они появятся здесь.' : tab === 'used' ? 'В браслете пока только белые бусины.' : 'Ничего не нашлось.'));
+      }
+      document.querySelectorAll('.v3-tab').forEach(function (b) {
+        b.addEventListener('click', function () {
+          tab = b.getAttribute('data-tab');
+          document.querySelectorAll('.v3-tab').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+          filterTrack();
+        });
+      });
+      $('v3Search').addEventListener('input', filterTrack);
+
+      // ---------- тип, размер, подвески ----------
+      function resized(before) { say(before > slots.length ? 'Бусин стало меньше: последние ' + (before - slots.length) + ' убраны. Их можно вернуть кнопкой «Отменить».' : ''); }
+      $('v3Types').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-type]'); if (!b || b.getAttribute('data-type') === type.id) return;
+        remember(); type = byId(D.TYPES, b.getAttribute('data-type'));
+        size = byId(type.sizes, type.id === 'stretch' ? '17' : type.sizes[0].id);
+        var before = slots.length; fit(size.count); prev = null; pills(); render(); resized(before);
+      });
+      $('v3Sizes').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-size]'); if (!b) return;
+        remember(); size = byId(type.sizes, b.getAttribute('data-size'));
+        var before = slots.length; fit(size.count); prev = null; pills(); render(); resized(before);
+      });
+      $('v3Pends').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-pend]'); if (!b) return;
+        var id = b.getAttribute('data-pend'), k = pends.indexOf(id);
+        if (k < 0 && pends.length >= D.PENDANT_MAX) { say('Подвесок может быть не больше ' + D.PENDANT_MAX + '. Снимите одну, чтобы добавить другую.'); return; }
+        remember(); if (k >= 0) pends.splice(k, 1); else pends.push(id);
+        say(''); pills(); render();
+      });
+
+      // ---------- помощники и узоры ----------
+      $('v3Auto').addEventListener('click', function () {
+        var used = slots.filter(function (id, i) { return id !== FILL && slots.indexOf(id) === i; });
+        if (!used.length) { say('Сначала поставьте на браслет хотя бы один камень или нажмите «Подобрать за 30 секунд».'); return; }
+        if (slots.indexOf(FILL) < 0) { say('Белых мест не осталось — браслет уже собран.'); return; }
+        remember(); var k = 0;
+        slots = slots.map(function (id) { return id === FILL ? used[k++ % used.length] : id; });
+        sel = []; say(''); render();
+      });
+      $('v3Clear').addEventListener('click', function () { remember(); slots = slots.map(function () { return FILL; }); pends = []; name = ''; sel = []; say(''); pills(); render(); });
+      $('v3Undo').addEventListener('click', function () {
+        var st = undo.pop(); if (!st) return; restore(st); sel = []; prev = null; pills(); say(''); render();
+        $('v3Undo').disabled = !undo.length;
+      });
+
+      var ops = {
+        mirror: function () {
+          var n = slots.length, changed = false, side = [];
+          for (var i = 0; i < n; i++) { var m = mirrorOf(i); if (m > i) side.push([i, m]); }
+          if (!slots.some(function (id) { return id !== FILL; })) return 'Сначала поставьте камни на одну сторону браслета.';
+          remember();
+          side.forEach(function (pr) {
+            var a = slots[pr[0]], b = slots[pr[1]];
+            if (a === b) return;
+            var v = a === FILL ? b : a; slots[pr[0]] = v; slots[pr[1]] = v; changed = true;
+          });
+          if (!changed) { undo.pop(); return 'Браслет уже симметричный.'; }
+          return 'Браслет стал зеркальным. Где стороны отличались, взят камень с первой стороны.';
+        },
+        alt: function () {
+          var idx = sel.length >= 2 ? sel.slice().sort(function (a, b) { return a - b; }) : slots.map(function (x, i) { return i; });
+          var stones = [];
+          idx.forEach(function (i) { var id = slots[i]; if (id !== FILL && stones.indexOf(id) < 0) stones.push(id); });
+          if (!stones.length) return 'Поставьте хотя бы один камень: он будет чередоваться с белыми бусинами.';
+          var A = stones[0], B = stones[1] || FILL;
+          remember(); idx.forEach(function (i, k) { slots[i] = k % 2 ? B : A; });
+          var where = sel.length >= 2 ? 'в выделенных бусинах' : 'по всему браслету';
+          sel = [];
+          return bead(A).name + ' и ' + bead(B).name.toLowerCase() + ' чередуются ' + where + '.';
+        },
+        repeat: function () {
+          var n = slots.length, pat, start;
+          if (sel.length >= 2) { var ix = sel.slice().sort(function (a, b) { return a - b; }); pat = ix.map(function (i) { return slots[i]; }); start = ix[0]; }
+          else {
+            start = slots.findIndex(function (id) { return id !== FILL; });
+            if (start < 0) return 'Соберите начало узора из нескольких камней или выделите бусины узора.';
+            var end = start; while (end + 1 < n && slots[end + 1] !== FILL) end++;
+            pat = slots.slice(start, end + 1);
+            if (pat.length < 2) pat = [pat[0], FILL];
+          }
+          remember();
+          for (var k = 0; k < n; k++) slots[(start + k) % n] = pat[k % pat.length];
+          sel = [];
+          return 'Узор из ' + pat.length + ' бусин повторён по всему браслету.';
+        },
+        range: function () {
+          if (sel.length < 2) return 'Нажмите на браслете первую и последнюю бусину диапазона, затем «Выделить диапазон».';
+          var a = Math.min.apply(null, sel), b = Math.max.apply(null, sel); sel = [];
+          for (var i = a; i <= b; i++) sel.push(i);
+          return 'Выделено бусин: ' + sel.length + '. Нажмите камень в ленте, чтобы заполнить их.';
+        },
+      };
+      document.querySelectorAll('[data-op]').forEach(function (b) {
+        b.addEventListener('click', function () { var m = ops[b.getAttribute('data-op')](); render(); say(m); });
+      });
+
+      // ---------- дизайны ViVA ----------
+      function designSlots(d) {
+        var t = byId(D.TYPES, d.type), z = byId(t.sizes, d.size), s = [];
+        for (var i = 0; i < z.count; i++) s.push(FILL);
+        if (d.every) { for (var j = 0; j < s.length; j += d.every.step) s[j] = d.every.bead; }
+        else groupsFor(t, z.count).forEach(function (g, k) {
+          var id = k < d.groups.length ? d.groups[k] : d.cycle[(k - d.groups.length) % d.cycle.length];
+          g.forEach(function (i) { s[i] = id; });
+        });
+        return { t: t, z: z, s: s };
+      }
+      document.querySelectorAll('.v3-design').forEach(function (card) {
+        var d = byId(D.DESIGNS, card.getAttribute('data-design')), r = designSlots(d);
+        draw(card.querySelector('.v3-thumb-beads'), card.querySelector('svg'), r.t, r.s, [], {});
+        card.querySelector('.v3-design-price').textContent = rub(priceOf(r.z, r.s, []));
+        card.querySelector('.v3-use').addEventListener('click', function () {
+          remember(); type = r.t; size = r.z; slots = r.s.slice(); pends = []; name = 'Браслет ' + d.name; sel = []; prev = null;
+          pills(); render(); say('Дизайн ' + d.name + ' на браслете. Меняйте любые бусины.');
+          stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      });
+
+      // ---------- «Подобрать за 30 секунд» ----------
+      var quizDlg = $('v3QuizDlg'), qi = 0, answers = {};
+      function openDlg(d) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+      function closeDlg(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+      function quizStep() {
+        var q = D.QUIZ[qi];
+        $('v3QuizN').textContent = 'Вопрос ' + (qi + 1) + ' из ' + D.QUIZ.length;
+        $('v3QuizQ').textContent = q.q;
+        var box = $('v3QuizOpts'); box.innerHTML = '';
+        q.opts.forEach(function (o) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = 'v3-quiz-opt'; b.textContent = o[1];
+          b.setAttribute('aria-pressed', String(answers[q.id] === o[0]));
+          b.addEventListener('click', function () { answers[q.id] = o[0]; if (qi < D.QUIZ.length - 1) { qi++; quizStep(); } else { closeDlg(quizDlg); applyQuiz(); } });
+          box.appendChild(b);
+        });
+        $('v3QuizBack').hidden = qi === 0;
+        var first = box.querySelector('button'); if (first) first.focus();
+      }
+      $('v3Quiz').addEventListener('click', function () { qi = 0; quizStep(); openDlg(quizDlg); });
+      $('v3QuizBack').addEventListener('click', function () { if (qi > 0) { qi--; quizStep(); } });
+      $('v3QuizClose').addEventListener('click', function () { closeDlg(quizDlg); });
+
+      function applyQuiz() {
+        var a = answers, want = { daily: ['calm', 'tender'], gift: ['tender', 'bright'], evening: ['bright', 'strict'] }[a.purpose] || [];
+        var cands = D.BEADS.filter(function (b) { return b.id !== FILL && b.id !== 'crystal'; }).map(function (b) {
+          var f = info(b.id), sc = 0;
+          if (f.color === a.color) sc += 3;
+          if (f.mood.indexOf(a.mood) >= 0) sc += 2;
+          if (f.mood.some(function (m) { return want.indexOf(m) >= 0; })) sc += 1;
+          return { id: b.id, sc: sc, price: b.price };
+        }).sort(function (x, y) { return y.sc - x.sc || x.price - y.price; });
+        var cap = a.budget === 'any' ? Infinity : Number(a.budget);
+        // при скромном бюджете из подходящих по цвету камней берём более доступные
+        if (cap <= 5000) {
+          var best = cands[0].sc;
+          cands = cands.filter(function (c) { return c.sc >= best - 1; }).sort(function (x, y) { return x.price - y.price || y.sc - x.sc; }).concat(cands.filter(function (c) { return c.sc < best - 1; }));
+        }
+        var top = cands.slice(0, 3).map(function (c) { return c.id; });
+        var accent = a.purpose === 'daily' && a.mood !== 'bright' ? FILL : 'crystal';
+        var groups = groupsFor(type, size.count), plan = [];
+        groups.forEach(function (g, k) {
+          var id;
+          if (a.style === 'mosaic') id = [top[0], top[1], top[2], accent === 'crystal' ? 'crystal' : top[0]][k % 4];
+          else if (a.style === 'accent') id = k === 0 || k === 1 ? top[0] : k === 2 || k === 4 ? top[1] : k % 3 === 0 ? accent : FILL;
+          else id = k === 0 ? top[0] : k === 2 ? top[1] : k % 4 === 0 ? accent : FILL;
+          plan.push(id);
+        });
+        // бюджет: убираем камни с дальних мест, пока сумма не уложится
+        var s = [];
+        var build = function () { s = []; for (var i = 0; i < size.count; i++) s.push(FILL); groups.forEach(function (g, k) { g.forEach(function (i) { s[i] = plan[k]; }); }); };
+        build();
+        for (var k = plan.length - 1; k > 0 && priceOf(size, s, []) > cap; k--) { if (bead(plan[k]).price) { plan[k] = accent; build(); } }
+        if (priceOf(size, s, []) > cap) {
+          var cheap = cands.filter(function (c) { return c.sc >= 3; }).sort(function (x, y) { return x.price - y.price; })[0];
+          if (cheap) { plan[0] = cheap.id; build(); }
+        }
+        remember(); slots = s; pends = []; name = ''; sel = []; prev = null; pills(); render();
+        var names = []; s.forEach(function (id) { if (id !== FILL && names.indexOf(bead(id).name) < 0) names.push(bead(id).name); });
+        say('Подобрали: ' + names.join(', ') + '. ' + (priceOf(size, s, []) > cap ? 'В бюджет уложиться не вышло, это самый близкий вариант. ' : '') + 'Меняйте дальше как обычно.');
+        stage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // ---------- обучение при первом входе ----------
+      var tour = $('v3Tour'), ti = 0, steps = tour.querySelectorAll('.v3-tour li');
+      function tourStep() {
+        steps.forEach(function (li, i) { li.hidden = i !== ti; });
+        $('v3TourN').textContent = 'Шаг ' + (ti + 1) + ' из ' + steps.length;
+        $('v3TourNext').textContent = ti === steps.length - 1 ? 'Начать' : 'Далее';
+      }
+      function tourDone() { store('viva-kb3-tour', 1); closeDlg(tour); }
+      $('v3TourNext').addEventListener('click', function () { if (ti < steps.length - 1) { ti++; tourStep(); } else tourDone(); });
+      $('v3TourSkip').addEventListener('click', tourDone);
+      tour.addEventListener('cancel', function () { store('viva-kb3-tour', 1); });
+      $('v3Help').addEventListener('click', function () { ti = 0; tourStep(); openDlg(tour); });
+
+      // ---------- итог и заказ ----------
+      $('v3Name').addEventListener('input', function () { name = this.value.trim().slice(0, 40); summary(); });
+      $('v3Name').addEventListener('blur', function () { if (!name) this.value = autoName(); });
+      function copy(text, done, fallback) {
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, function () { if (fallback) fallback(); });
+        else if (fallback) fallback();
+      }
+      function status(t) { $('v3Status').textContent = t; }
+      $('v3Order').addEventListener('click', function () { copy(orderText, function () { status('Описание браслета скопировано — вставьте его в чат с мастером.'); }); });
+      $('v3Copy').addEventListener('click', function () { copy(location.href, function () { status('Ссылка на этот браслет скопирована.'); }, function () { prompt('Скопируйте ссылку:', location.href); }); });
+      $('v3CopyStory').addEventListener('click', function () { copy(storyText, function () { status('История браслета скопирована.'); }); });
+
+      function savedList() { return load('viva-kb3-saved') || []; }
+      function drawSaved() {
+        var list = savedList(), ul = $('v3Saved'); ul.innerHTML = '';
+        $('v3SavedBox').hidden = !list.length;
+        list.forEach(function (d, k) {
+          var li = document.createElement('li');
+          var t = document.createElement('span'); t.textContent = d.n + ' · ' + d.c;
+          var o = document.createElement('button'); o.type = 'button'; o.className = 'v3-link'; o.textContent = 'Открыть';
+          o.addEventListener('click', function () { remember(); restore(d); sel = []; prev = null; pills(); render(); status('Открыт дизайн «' + d.n + '».'); stage.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+          var x = document.createElement('button'); x.type = 'button'; x.className = 'v3-link'; x.textContent = 'Удалить';
+          x.addEventListener('click', function () { var l = savedList(); l.splice(k, 1); store('viva-kb3-saved', l); drawSaved(); });
+          li.appendChild(t); li.appendChild(o); li.appendChild(x); ul.appendChild(li);
+        });
+      }
+      $('v3Save').addEventListener('click', function () {
+        var l = savedList(), c = cid(), st = snapshot(); st.n = name || autoName(); st.c = c;
+        l = l.filter(function (d) { return d.c !== c; }); l.unshift(st); store('viva-kb3-saved', l.slice(0, 12));
+        drawSaved(); status(load('viva-kb3-saved') ? 'Дизайн сохранён в этом браузере.' : 'Браузер не разрешает сохранять. Скопируйте ссылку — она откроет этот же браслет.');
+      });
+
+      // ---------- старт: ссылка, затем сохранённый в браузере браслет ----------
+      var p = {};
+      location.hash.replace(/^#/, '').split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1)); });
+      var saved = p.t ? { t: p.t, z: p.z, s: (p.s || '').split(','), p: p.p ? p.p.split(',') : [], n: p.n || '' } : load('viva-kb3');
+      if (saved && saved.t) restore(saved); else fit(size.count);
+      pills(); render(); drawSaved();
+      if (!load('viva-kb3-tour') && !p.t) { tourStep(); openDlg(tour); }
+    })();
+  </script>
+</Layout>
+
+<style is:global>
+  .v3 { padding: 40px 0 96px; background: var(--paper); }
+  .v3-wrap { max-width: 860px; }
+  .v3-head h1 { font-size: clamp(46px, 6vw, 80px); letter-spacing: -.04em; margin: 8px 0 10px; }
+  .v3-head p { max-width: 60ch; color: var(--muted); margin: 0 0 22px; }
+  .v3-pick { display: flex; flex-wrap: wrap; gap: 14px 32px; margin-bottom: 8px; }
+  .v3-field small, .v3-sec-head small { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .v3-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .v3-pill { min-height: 40px; padding: 8px 14px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); font: 500 14px var(--sans); cursor: pointer; }
+  .v3-pill:hover { border-color: var(--olive); }
+  .v3-pill[aria-pressed="true"] { background: var(--olive); border-color: var(--olive); color: #fff; }
+  .v3-stage-wrap { position: relative; margin: 10px 0 0; }
+  .v3-stage { position: relative; aspect-ratio: 1000 / 700; background: radial-gradient(ellipse at 50% 42%, #fff 55%, #f7f5ee 100%); border: 1px solid var(--line); overflow: hidden; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+  .v3-cord, .v3-beads, .v3-thumb svg, .v3-thumb-beads { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .v3-bead { position: absolute; height: auto; aspect-ratio: 1; border-radius: 50%; transition: left .22s ease, top .22s ease, width .22s ease, filter .15s; filter: brightness(var(--dim, 1)) drop-shadow(0 4px 5px rgba(40, 38, 30, .22)); -webkit-touch-callout: none; }
+  .v3-beads .v3-bead { cursor: grab; touch-action: none; }
+  .v3-bead:focus-visible { outline: 3px solid #14b8a6; outline-offset: 2px; }
+  .v3-bead.is-sel { box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--olive); filter: none; }
+  .v3-bead.is-target { filter: drop-shadow(0 0 8px #f2a24a) drop-shadow(0 0 16px rgba(242, 162, 74, .85)); }
+  .v3-bead.is-lifted { opacity: .35; }
+  .v3-bead.is-pop { animation: v3pop .32s ease-out; }
+  @keyframes v3pop { 0% { transform: translateY(-14%) scale(1.18); } 100% { transform: none; } }
+  .v3-num { position: absolute; z-index: 140; transform: translate(-50%, -115%); min-width: 22px; padding: 1px 6px; border-radius: 11px; background: var(--olive); color: #fff; font: 700 11px/18px var(--sans); text-align: center; pointer-events: none; }
+  .v3-pendant { position: absolute; z-index: 150; height: auto; pointer-events: none; filter: drop-shadow(0 6px 6px rgba(40, 38, 30, .25)); }
+  .v3-ring { position: absolute; z-index: 151; width: 1.8%; aspect-ratio: 1 / 1.3; border: 2px solid #c9a24d; border-radius: 50%; pointer-events: none; }
+  .v3-ring.is-silver { border-color: #b9bcc2; }
+  .v3-empty { position: absolute; left: 0; right: 0; top: 37%; margin: 0; text-align: center; font: italic 500 clamp(17px, 2.4vw, 24px)/1.2 var(--serif); color: var(--muted); pointer-events: none; z-index: 120; }
+  .v3-active { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 12px; background: var(--ink); color: #fff; font: 600 13px/1.3 var(--sans); }
+  .v3-active[hidden] { display: none; }
+  .v3-active button { padding: 2px 8px; border: 1px solid rgba(255, 255, 255, .5); background: none; color: #fff; font: 600 12px var(--sans); cursor: pointer; }
+  .v3-active button[hidden] { display: none; }
+  .v3-badge { position: absolute; right: 12px; bottom: 12px; z-index: 160; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; padding: 8px 12px; background: rgba(246, 243, 232, .94); border: 1px solid var(--line); }
+  .v3-badge small { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-dark); }
+  .v3-badge b { font: 600 28px/1 var(--serif); color: var(--ink); white-space: nowrap; }
+  .v3-ghost { position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; border-radius: 50%; filter: drop-shadow(0 10px 12px rgba(40, 38, 30, .35)); }
+  html.v3-dragging, html.v3-dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+  .v3-tools { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 18px 0 8px; }
+  .v3-helpers { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .v3-auto { display: inline-flex; align-items: center; gap: 12px; padding: 9px 20px 9px 10px; border: 2px solid transparent; border-radius: 40px; background: linear-gradient(var(--cream), var(--cream)) padding-box, linear-gradient(90deg, #e2799a, #f0b45a) border-box; color: var(--ink); cursor: pointer; text-align: left; }
+  .v3-auto.is-quiet { background: var(--cream); border-color: var(--line); }
+  .v3-auto b { display: block; font: 700 14px var(--sans); }
+  .v3-auto small { display: block; font-size: 12px; color: var(--muted); }
+  .v3-auto-ico { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #fff; border: 1px solid var(--line); font-size: 15px; }
+  .v3-patterns { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .v3-chip { min-height: 34px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 18px; background: #fff; color: var(--ink); font: 600 12px var(--sans); cursor: pointer; }
+  .v3-chip:hover { border-color: var(--olive); }
+  .v3-mini-tools { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; }
+  .v3-link { padding: 4px 0; border: 0; background: none; color: var(--accent-dark); font: 600 13px var(--sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .v3-link:disabled { color: var(--muted); opacity: .5; cursor: default; text-decoration: none; }
+  .v3-link[hidden] { display: none; }
+  .v3-msg { min-height: 1.2em; margin: 0; font-size: 13px; color: var(--accent-dark); text-align: center; }
+  .v3-palette { margin-top: 12px; }
+  .v3-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+  .v3-tab { min-height: 34px; padding: 6px 12px; border: 0; border-radius: 20px; background: var(--cream); color: var(--ink); font: 600 12px var(--sans); cursor: pointer; }
+  .v3-tab span { opacity: .6; font-weight: 500; }
+  .v3-tab[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .v3-search input { min-height: 34px; width: 160px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 20px; background: #fff; font: 13px var(--sans); }
+  .v3-track, .v3-pend-row, .v3-design-row { display: flex; gap: 4px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
+  .v3-track { touch-action: pan-x; }
+  .v3-track[data-empty]:not([data-empty=""])::before { content: attr(data-empty); padding: 18px 4px; font-size: 13px; color: var(--muted); }
+  .v3-item { position: relative; flex: none; width: 92px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 8px; scroll-snap-align: start; text-align: center; }
+  .v3-item[hidden] { display: none; }
+  .v3-take { width: 70px; height: 70px; padding: 0; border: 0; background: none; border-radius: 50%; cursor: grab; touch-action: pan-x; -webkit-touch-callout: none; }
+  .v3-take img { width: 64px; height: 64px; display: block; margin: 3px; border-radius: 50%; filter: drop-shadow(0 3px 4px rgba(40, 38, 30, .2)); -webkit-user-drag: none; }
+  .v3-take:hover img { transform: translateY(-2px); }
+  .v3-take:focus-visible { outline: 3px solid #14b8a6; outline-offset: 2px; }
+  .v3-item.is-taken .v3-take img { opacity: .25; }
+  .v3-iname { font-size: 11px; line-height: 1.2; color: var(--ink); }
+  .v3-iprice { font-size: 10.5px; color: var(--muted); }
+  .v3-fav { position: absolute; top: 2px; right: 6px; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .9); color: #d9644a; font-size: 15px; line-height: 26px; cursor: pointer; }
+  .v3-hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+  .v3-pends, .v3-designs { margin-top: 26px; }
+  .v3-sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .v3-sec-head h2 { margin: 0; font: 500 26px/1.1 var(--serif); }
+  .v3-sec-head small { margin: 0; }
+  .v3-pend { flex: none; width: 96px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; scroll-snap-align: start; }
+  .v3-pend img { width: 54px; height: 54px; object-fit: contain; }
+  .v3-pend span { font: 600 11px/1.2 var(--sans); }
+  .v3-pend small { font-size: 10.5px; color: var(--muted); }
+  .v3-pend[aria-pressed="true"] { border-color: var(--olive); box-shadow: inset 0 0 0 2px var(--olive); }
+  .v3-design-row { gap: 12px; }
+  .v3-design { flex: none; width: 210px; display: flex; flex-direction: column; padding: 10px 10px 14px; background: #fff; border: 1px solid var(--line); scroll-snap-align: start; }
+  .v3-design h3 { margin: 8px 0 2px; font: 500 21px/1.1 var(--serif); }
+  .v3-design p { margin: 0 0 6px; font-size: 12.5px; color: var(--muted); flex: 1; }
+  .v3-design-price { font: 600 15px var(--sans); margin-bottom: 10px; }
+  .v3-design .button { min-height: 40px; font: 600 13px var(--sans); cursor: pointer; }
+  .v3-thumb { position: relative; aspect-ratio: 1000 / 700; background: #fff; }
+  .v3-thumb .v3-bead { filter: brightness(var(--dim, 1)); transition: none; }
+  .v3-summary { margin-top: 30px; background: var(--cream); border: 1px solid var(--line); padding: 24px; }
+  .v3-card { display: grid; grid-template-columns: 220px 1fr; gap: 18px; align-items: center; margin: 10px 0 14px; }
+  .v3-card-thumb { border: 1px solid var(--line); }
+  .v3-name span { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .v3-name input { width: 100%; min-height: 46px; padding: 8px 12px; border: 1px solid var(--line); background: #fff; font: 500 22px var(--serif); color: var(--ink); }
+  .v3-cid { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+  .v3-cid b { color: var(--ink); letter-spacing: .04em; }
+  .v3-lines { margin: 0; }
+  .v3-lines div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .v3-lines dt { color: var(--muted); }
+  .v3-lines dd { margin: 0; white-space: nowrap; }
+  .v3-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 18px; font-weight: 600; }
+  .v3-total b { font: 600 30px/1 var(--serif); }
+  .v3-story { margin: 0 0 20px; padding: 18px 20px; background: #fff; border-left: 3px solid var(--olive); }
+  .v3-story h2 { margin: 0 0 8px; font: 500 24px/1.1 var(--serif); }
+  .v3-story p { margin: 0 0 8px; font-size: 15px; line-height: 1.55; }
+  .v3-story .v3-story-note { font-size: 12px; color: var(--muted); }
+  .v3-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .v3-actions .button { min-height: 48px; cursor: pointer; font-family: var(--sans); }
+  .v3-status { min-height: 1.2em; margin: 8px 0 0; font-size: 13px; color: var(--accent-dark); }
+  .v3-saved h3 { margin: 14px 0 6px; font: 600 14px var(--sans); }
+  .v3-saved ul { margin: 0; padding: 0; list-style: none; }
+  .v3-saved li { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .v3-saved li span { flex: 1 1 180px; }
+  .v3-fine { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+  .v3-dialog { width: min(440px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); background: var(--paper); color: var(--ink); }
+  .v3-dialog::backdrop { background: rgba(36, 34, 29, .45); }
+  .v3-dlg-in { padding: 24px 22px 18px; }
+  .v3-step-n { margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-dark); }
+  .v3-tour { margin: 0; padding: 0; list-style: none; }
+  .v3-tour li[hidden] { display: none; }
+  .v3-tour-ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--cream); border: 1px solid var(--line); font-size: 24px; color: var(--olive); }
+  .v3-tour h2, .v3-dialog > div > h2 { margin: 12px 0 6px; font: 500 28px/1.1 var(--serif); }
+  .v3-tour p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+  .v3-dlg-btns { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 20px; }
+  .v3-dlg-btns .button { min-height: 44px; cursor: pointer; font-family: var(--sans); }
+  .v3-quiz-opts { display: grid; gap: 8px; margin-top: 14px; }
+  .v3-quiz-opt { min-height: 48px; padding: 10px 14px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 600 15px var(--sans); text-align: left; cursor: pointer; }
+  .v3-quiz-opt:hover, .v3-quiz-opt[aria-pressed="true"] { border-color: var(--olive); box-shadow: inset 0 0 0 1px var(--olive); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* на планшете и телефоне браслет остаётся на виду, пока листаете ленту камней */
+  @media (max-width: 900px) and (orientation: portrait) { .v3-stage-wrap { position: sticky; top: 70px; z-index: 20; } }
+  @media (max-width: 620px) {
+    .v3 { padding: 20px 0 48px; }
+    .v3-head h1 { font-size: 44px; }
+    .v3-head p { font-size: 14px; margin-bottom: 14px; }
+    .v3-stage-wrap { margin-left: -14px; margin-right: -14px; }
+    .v3-stage { border-left: 0; border-right: 0; }
+    .v3-active { font-size: 12px; padding: 6px 14px; }
+    .v3-badge { right: 8px; bottom: 8px; padding: 6px 9px; }
+    .v3-badge b { font-size: 22px; }
+    .v3-auto { padding: 7px 14px 7px 8px; }
+    .v3-auto b { font-size: 13px; }
+    .v3-search input { width: 120px; }
+    .v3-summary { padding: 20px 16px; }
+    .v3-card { grid-template-columns: 1fr; }
+    .v3-actions .button { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .v3-bead { transition: none; } .v3-bead.is-pop { animation: none; } }
+</style>
